@@ -62,6 +62,9 @@ static FUManager *shareManager = NULL;
         [FURenderer setMaxFaces:4];
         
         self.isRender = YES;
+        
+        self.trackFlipx = YES;
+        self.flipx = YES;
     }
     
     return self;
@@ -281,14 +284,21 @@ static int oldHandle = 0;
         [FURenderer onCameraChange];
     }
     
-    if (_isRender) {
+    CVPixelBufferRef buffer = nil;
+    
+    if (1) {
         /* 由于 rose 妆可能会镜像，下面代码对妆容做镜像翻转 */
          int temp = self.flipx? 1:0;
         [FURenderer itemSetParam:items[FUNamaHandleTypeMakeup] withName:@"is_flip_points" value:@(temp)];
         
         /* 美妆，美体，贴纸 性能问题不共用 */
         static int readerItems[2] = {0};
-        readerItems[0] = items[FUNamaHandleTypeBeauty];
+        
+        if(_isRender){
+           readerItems[0] = items[FUNamaHandleTypeBeauty];
+        }else{
+            readerItems[0] = 0;
+        }
         if (_currentType == FUDataTypeMakeup) {
             readerItems[1] = items[FUNamaHandleTypeMakeup];
         }
@@ -299,12 +309,14 @@ static int oldHandle = 0;
             readerItems[1] = items[FUNamaHandleTypeBodySlim];
         }
 
-        CVPixelBufferRef buffer = [[FURenderer shareRenderer] renderPixelBuffer:pixelBuffer withFrameId:frameID items:readerItems itemCount:2 flipx:_flipx];//flipx 参数设为YES可以使道具做水平方向的镜像翻转
+        buffer = [[FURenderer shareRenderer] renderPixelBuffer:pixelBuffer withFrameId:frameID items:readerItems itemCount:2 flipx:_flipx customSize:CGSizeZero];//flipx 参数设为YES可以使道具做水平方向的镜像翻转
+
+
         frameID += 1;
     }
 
     
-    return pixelBuffer;
+    return buffer;
 }
 
 /**处理YUV*/

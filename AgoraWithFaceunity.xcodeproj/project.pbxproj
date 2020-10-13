@@ -34,7 +34,6 @@
 		0FD4E2052105C747006E46A1 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0FD4E2072105C747006E46A1 /* Localizable.strings */; };
 		2FBF73042224F3940054BAEE /* libc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 2FBF73032224F3940054BAEE /* libc++.tbd */; };
 		707BDE572269BD950040211C /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 707BDE562269BD950040211C /* CoreML.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
-		E309858E24B40C2D0070A5A7 /* ai_gesture.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E309858124B40C2A0070A5A7 /* ai_gesture.bundle */; };
 		E309858F24B40C2D0070A5A7 /* ai_face_processor.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E309858224B40C2A0070A5A7 /* ai_face_processor.bundle */; };
 		E309859024B40C2D0070A5A7 /* ai_face_processor_lite.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E309858324B40C2A0070A5A7 /* ai_face_processor_lite.bundle */; };
 		E309859124B40C2D0070A5A7 /* ai_human_processor.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E309858424B40C2A0070A5A7 /* ai_human_processor.bundle */; };
@@ -83,6 +82,7 @@
 		E324547124A1CA7A00BFC893 /* shaonv.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E324544024A1CA7A00BFC893 /* shaonv.bundle */; };
 		E324547224A1CA7A00BFC893 /* nuandong.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E324544124A1CA7A00BFC893 /* nuandong.bundle */; };
 		E324547324A1CBC000BFC893 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 707BDE562269BD950040211C /* CoreML.framework */; };
+		E36B296D24B6CDAD009984DE /* FUTestRecorder.m in Sources */ = {isa = PBXBuildFile; fileRef = E36B296C24B6CDAD009984DE /* FUTestRecorder.m */; };
 		E37615FF23FBFF8600166865 /* AGMCapturer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E37615FB23FBFF8500166865 /* AGMCapturer.framework */; };
 		E376160023FBFF8600166865 /* AgoraRtcCryptoLoader.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E37615FC23FBFF8600166865 /* AgoraRtcCryptoLoader.framework */; };
 		E376160123FBFF8600166865 /* AGMBase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E37615FD23FBFF8600166865 /* AGMBase.framework */; };
@@ -143,7 +143,6 @@
 		0FD4E20A2105C84A006E46A1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Base; path = Base.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2FBF73032224F3940054BAEE /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
 		707BDE562269BD950040211C /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
-		E309858124B40C2A0070A5A7 /* ai_gesture.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = ai_gesture.bundle; sourceTree = "<group>"; };
 		E309858224B40C2A0070A5A7 /* ai_face_processor.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = ai_face_processor.bundle; sourceTree = "<group>"; };
 		E309858324B40C2A0070A5A7 /* ai_face_processor_lite.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = ai_face_processor_lite.bundle; sourceTree = "<group>"; };
 		E309858424B40C2A0070A5A7 /* ai_human_processor.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = ai_human_processor.bundle; sourceTree = "<group>"; };
@@ -208,6 +207,8 @@
 		E324543F24A1CA7A00BFC893 /* DaisyPig.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = DaisyPig.bundle; sourceTree = "<group>"; };
 		E324544024A1CA7A00BFC893 /* shaonv.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = shaonv.bundle; sourceTree = "<group>"; };
 		E324544124A1CA7A00BFC893 /* nuandong.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = nuandong.bundle; sourceTree = "<group>"; };
+		E36B296B24B6CDAC009984DE /* FUTestRecorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FUTestRecorder.h; sourceTree = "<group>"; };
+		E36B296C24B6CDAD009984DE /* FUTestRecorder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FUTestRecorder.m; sourceTree = "<group>"; };
 		E37615FB23FBFF8500166865 /* AGMCapturer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = AGMCapturer.framework; sourceTree = "<group>"; };
 		E37615FC23FBFF8600166865 /* AgoraRtcCryptoLoader.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = AgoraRtcCryptoLoader.framework; sourceTree = "<group>"; };
 		E37615FD23FBFF8600166865 /* AGMBase.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = AGMBase.framework; sourceTree = "<group>"; };
@@ -328,6 +329,8 @@
 			isa = PBXGroup;
 			children = (
 				E324542D24A1CA7900BFC893 /* authpack.h */,
+				E36B296B24B6CDAC009984DE /* FUTestRecorder.h */,
+				E36B296C24B6CDAD009984DE /* FUTestRecorder.m */,
 				E32453F524A1CA6E00BFC893 /* FaceUnity-SDK-iOS */,
 				E324540C24A1CA7900BFC893 /* FUAPIDemoBar */,
 				E324540B24A1CA6F00BFC893 /* FUCamera.h */,
@@ -368,7 +371,6 @@
 		E309858024B40C2A0070A5A7 /* model */ = {
 			isa = PBXGroup;
 			children = (
-				E309858124B40C2A0070A5A7 /* ai_gesture.bundle */,
 				E309858224B40C2A0070A5A7 /* ai_face_processor.bundle */,
 				E309858324B40C2A0070A5A7 /* ai_face_processor_lite.bundle */,
 				E309858424B40C2A0070A5A7 /* ai_human_processor.bundle */,
@@ -539,7 +541,6 @@
 				E376188F23FE226100166865 /* dataSource.plist in Resources */,
 				E324547124A1CA7A00BFC893 /* shaonv.bundle in Resources */,
 				E324546024A1CA7A00BFC893 /* wobushi.bundle in Resources */,
-				E309858E24B40C2D0070A5A7 /* ai_gesture.bundle in Resources */,
 				E309859424B40C2D0070A5A7 /* face_makeup.bundle in Resources */,
 				E309859524B40C2D0070A5A7 /* controller.bundle in Resources */,
 				E309859024B40C2D0070A5A7 /* ai_face_processor_lite.bundle in Resources */,
@@ -582,6 +583,7 @@
 				0F112314233C39CC00414A13 /* KeyCenter.m in Sources */,
 				E324545724A1CA7A00BFC893 /* FUBeautyParam.m in Sources */,
 				0F02C1F420550948006EF198 /* RoomViewController.m in Sources */,
+				E36B296D24B6CDAD009984DE /* FUTestRecorder.m in Sources */,
 				E324545C24A1CA7A00BFC893 /* UIColor+FUAPIDemoBar.m in Sources */,
 				09807C402396555600E34D1B /* AGMFaceUnityFilter.m in Sources */,
 				E324545A24A1CA7A00BFC893 /* FUAPIDemoBar.m in Sources */,
