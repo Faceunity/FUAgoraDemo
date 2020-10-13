@@ -1,113 +1,200 @@
-# FUAgoraDemo 快速接入文档
+# Agora Video With Faceunity
 
-FUAgoraDemo 是集成了 [Faceunity](https://github.com/Faceunity/FULiveDemo/tree/dev) 面部跟踪、虚拟道具功能 和 声网 SDK的 Demo。
+*其他语言版本： [简体中文](README.zh.md)*
 
-**本文是 FaceUnity SDK  快速对接 腾讯实时音视频 的导读说明**
+This open source demo project demonstrates how to implement 1to1 video chat with  [Agora] (www.agora.io) video SDK and the [Faceunity] (http://www.faceunity.com) beauty SDK.
 
-**关于  FaceUnity SDK 的更多详细说明，请参看 [FULiveDemo](https://github.com/Faceunity/FULiveDemo/tree/dev)**
+With this sample app you can:
 
-**运行前先下载声网SDK**
+Agora 
 
-## 快速集成方法
+- Join / leave channel
+- Implement 1to1 video chat 
+- Mute / unmute audio
 
-### 一、导入 SDK
+Faceunity
 
-将  FaceUnity  文件夹全部拖入工程中
+- face tracking, beauty, Animoji, props stickers, AR mask, face transfer , face recognition, music filter, background segmentation
+- Switch capture format
+- Switch camera
 
-### 二、加入展示 FaceUnity SDK 美颜贴纸效果的  UI
 
-1、在  RoomViewController.m  中添加头文件，并创建页面属性
+This project adopts the video beauty pre-processing function provided by Faceunity, Uses the audio collection, encoding, transmission, decoding and rendering functions provided by Agora's, and uses the video collection function provided by Agora Module.
 
-```C
-#import <FUAPIDemoBar/FUAPIDemoBar.h>
+Faceunity beauty function please refer to. [Faceunity Document](http://www.faceunity.com/docs_develop_en/#/)
 
-@property (nonatomic, strong) FUAPIDemoBar *demoBar ;
-```
+Agora function implementation please refer to [Agora Document](https://docs.agora.io/en/Interactive%20Broadcast/API%20Reference/oc/docs/headers/Agora-Objective-C-API-Overview.html)
 
-2、初始化 UI，并遵循代理  FUAPIDemoBarDelegate ，实现代理方法 `demoBarDidSelectedItem:` 切换贴纸 和 `demoBarBeautyParamChanged` 更新美颜参数。
+Due to the need to use third-party capture when using beauty function, please refer to [Customized Media Source API](https://docs.agora.io/en/Interactive%20Broadcast/raw_data_video_android?platform=Android)  or [Configuring the External Data API](https://docs.agora.io/en/Interactive%20Broadcast/raw_data_video_android?platform=Android)
 
-```C
--(FUAPIDemoBar *)demoBar {
-    if (!_demoBar) {
-        _demoBar = [[FUAPIDemoBar alloc] initWithFrame:CGRectMake(0, self.view.bounds.size.height - 231 - 50, self.view.bounds.size.width, 231)];
+
+## How to use the Agora Module capturer function.
+
+## Features
+- [x] 	Capturer
+	- [x] Camera Capturer
+		- [x] Support for front and rear camera switching
+		- [x] Support for dynamic resolution switching
+		- [x] Support I420, NV12, BGRA pixel format output
+		- [x] Support Exposure, ISO
+		- [ ] Support ZoomScale
+		- [ ] Support Torch
+		- [ ] Support watermark
+	- [x] Audio Capturer
+		- [x] Support single and double channel
+		- [x] Support Mute
+	- [x]  Video Frame Adapter (For processing the video frame direction required by different modules)
+		- [x] Support VideoOutputOrientationModeAdaptative for RTC function
+		- [x] Support ...FixedLandscape and ...FixedLandscape for CDN live streaming
+- [x] Renderer
+	- [x] gles
+		- [x] Support glContext Shared
+		- [x] Support mirror
+		- [x] Support fit、hidden zoom mode
+
+
+
+  
+## Installation
+
+#### Manually
+
+1. If you are using the capturer module，Go to SDK Downloads, download the AgoraModule_Base and AgoraModule_Capturer module SDK. 
+2. Copy the AGMBase.framework、AGMCapturer.framework file in the libs folder to the project folder.
+3. In Xcode, go to the TARGETS > Project Name > Build Phases > Link Binary with Libraries menu, and click + to add the following frameworks and libraries. To add the AGMBase.framework、AGMCapturer.framework  file, remember to click Add Other... after clicking +.
+4. Link with required frameworks:
+     * UIKit.framework
+     * Foundation.framework
+     * AVFoundation.framework
+     * VideoToolbox.framework
+     * AudioToolbox.framework
+     * libz.framework
+     * libstdc++.framework
+
+#### SDK Downloads
+[AgoraModule_Base_iOS-1.1.0](https://download.agora.io/components/release/AgoraModule_Base_iOS-1.1.0.zip)
+
+[AgoraModule_Capturer_iOS-1.1.0](https://download.agora.io/components/release/AgoraModule_Capturer_iOS-1.1.0.zip)
+
+[AgoraModule_Renderer_iOS-1.1.0](https://download.agora.io/components/release/AgoraModule_Renderer_iOS-1.1.0.zip)
+                               
+                           
+#### Add project permissions
+Add the following permissions in the info.plist file for device access according to your needs:
+
+| Key      |    Type | Value  |
+| :-------- | --------:| :--: |
+| Privacy - Microphone Usage Description	  | String |  To access the microphone, such as for a video call.|
+| Privacy - Camera Usage Description	     |   String |  To access the camera, such as for a video call.|
         
-        NSLog(@"---------%@",NSStringFromCGRect(_demoBar.frame));
-        _demoBar.mDelegate = self;
-    }
-    return _demoBar ;
-}
 
+## Usage example 
+
+#### Objective-C
+
+##### How to use Capturer
+
+```objc
+AGMCapturerVideoConfig *videoConfig = [AGMCapturerVideoConfig defaultConfig];
+videoConfig.videoSize = CGSizeMake(720, 1280);
+videoConfig.sessionPreset = AGMCaptureSessionPreset720x1280;
+self.cameraCapturer = [[AGMCameraCapturer alloc] initWithConfig:videoConfig];
+[self.cameraCapturer start];
 ```
 
-#### 实现UI事件回调
+##### How to use build-in filter
+```objc
+self.filter = [[AGMFilter alloc] init];
+```
 
-```C
--(void)filterValueChange:(FUBeautyParam *)param{
-    [[FUManager shareManager] filterValueChange:param];
-}
-
--(void)switchRenderState:(BOOL)state{
-    [FUManager shareManager].isRender = state;
-}
-
--(void)bottomDidChange:(int)index{
-    if (index < 3) {
-        [[FUManager shareManager] setRenderType:FUDataTypeBeautify];
-    }
-    if (index == 3) {
-        [[FUManager shareManager] setRenderType:FUDataTypeStrick];
-    }
+##### How to use renderer
+```objc
+self.preview = [[UIView alloc] initWithFrame:self.view.bounds];
+[self.view insertSubview:self.preview atIndex:0];
     
-    if (index == 4) {
-        [[FUManager shareManager] setRenderType:FUDataTypeMakeup];
-    }
-    if (index == 5) {
-        [[FUManager shareManager] setRenderType:FUDataTypebody];
+AGMRendererConfig *rendererConfig = [AGMRendererConfig defaultConfig];
+self.videoRenderer = [[AGMVideoRenderer alloc] initWithConfig:rendererConfig];
+self.videoRenderer.preView = self.preview;
+[self.videoRenderer start];    
+
+
+```
+
+##### Associate the modules
+
+```objc
+
+[self.cameraCapturer addVideoSink:self.filter];
+[self.filter addVideoSink:self.videoRenderer];
+
+```
+
+##### Custom Filter
+
+Create a class that inherits form AGMVideoSource and implements the AGMVideoSink protocol, Implement the onFrame: method to handle the videoframe .
+
+```objc
+
+#import <AGMBase/AGMBase.h>
+
+interface AGMSenceTimeFilter : AGMVideoSource <AGMVideoSink>
+
+@end
+
+#import "AGMSenceTimeFilter.h"
+
+@implementation AGMSenceTimeFilter
+
+- (void)onFrame:(AGMVideoFrame *)videoFrame
+{
+#pragma mark Write the filter processing.
+    
+    
+#pragma mark When you're done, pass it to the next sink.
+    if (self.allSinks.count) {
+        for (id<AGMVideoSink> sink in self.allSinks) {
+            [sink onFrame:videoFrame];
+        }
     }
 }
+
+@end
+
 ```
 
 
+## Running the App
+First, create a developer account at [Agora.io](https://dashboard.agora.io/signin/), and obtain an App ID. Update "KeyCenter.m" with your App ID. 
 
-### 三、在 `initUI ` 中初始化 SDK  并将  demoBar 添加到页面上
-
-```C
-    [[FUManager shareManager] loadItems];
-    [self.view addSubview:self.demoBar];
 ```
-
-### 四、外部滤镜
-
-在类RoomViewController.m,添加声网采集回调self.faceUnityFilter.didCompletion
-
-```C
-self.faceUnityFilter.didCompletion = ^(CVPixelBufferRef  _Nonnull pixelBuffer, CMTime timeStamp, AGMVideoRotation rotation) {
-        
-        
-        CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
-
-        CFAbsoluteTime startRenderTime = CFAbsoluteTimeGetCurrent();
-
-        [[FUManager shareManager] renderItemsToPixelBuffer:pixelBuffer];
-        
-        CFAbsoluteTime renderTime = (CFAbsoluteTimeGetCurrent() - startRenderTime);
-        // push pixelBuffer to agora server
-        [weakSelf.consumer consumePixelBuffer:pixelBuffer withTimestamp:timeStamp rotation:rotation];
-        
-    };
++ (NSString *)AppId {
+     return @"Your App ID";
+}
 ```
+Next, download the **Agora Video SDK** from [Agora.io SDK](https://www.agora.io/en/download/). Unzip the downloaded SDK package and copy the "libs/AgoraRtcEngineKit.framework" to the "AgoraWithFaceunity" folder.
 
+Contact [Faceunity](http://www.faceunity.com)  to get the certificate file replace the "authpack.h" file in the "/AgoraWithFaceunity/Faceunity" folder of this project.
 
+Finally, Open AgoraWithFaceunity.xcodeproj, connect your iPhone／iPad device, setup your development signing and run.
 
-### 五、推流结束时需要销毁道具
+## FAQ
 
-销毁道具需要调用以下代码
+- Please do not use the raw data interface provided by Agora to integrate beauty features
+- Videosource internal is a strong reference, you must set nil when not in use, otherwise it will cause a circular reference
+- If you encounter a big head problem, please contact technical support
 
-```C
-[[FUManager shareManager] destoryItems];
-```
+## Developer Environment Requirements
+* XCode 8.0 +
+* Real devices (iPhone or iPad)
+* iOS simulator is NOT supported
 
+## Connect Us
 
+- You can find full API document at [Document Center](https://docs.agora.io/en/)
+- You can file bugs about this demo at [issue](https://github.com/AgoraIO/Agora-iOS-Tutorial-Swift-1to1/issues)
 
-#### 关于 FaceUnity SDK 的更多详细说明，请参看 [FULiveDemo](<https://github.com/Faceunity/FULiveDemo/blob/master/docs/iOS_Nama_SDK_%E9%9B%86%E6%88%90%E6%8C%87%E5%AF%BC%E6%96%87%E6%A1%A3.md>)
+## License
+
+The MIT License (MIT).
+
 
