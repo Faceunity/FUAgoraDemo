@@ -27,9 +27,6 @@
 
 @property (nonatomic, assign) int deviceOrientation;
 
-/// 记录ID
-@property(nonatomic, assign) int recordId;
-
 
 @end
 
@@ -69,7 +66,6 @@ static FUManager *shareManager = NULL;
         [self loadFilter];
         NSLog(@"faceunitySDK version:%@",[FURenderer getVersion]);
         [FURenderer setMaxFaces:4];
-        self.rotationMode = 0;
         self.deviceOrientation = 0;
         
         [[FUTestRecorder shareRecorder] setupRecord];
@@ -395,17 +391,9 @@ static int oldHandle = 0;
 - (CVPixelBufferRef)renderItemsToPixelBuffer:(CVPixelBufferRef)pixelBuffer{
     if ([self isDeviceMotionChange]) {
         
-        if (self.rotationMode == self.recordId) {
-            
-            self.recordId = 0;
-            fuSetDefaultRotationMode(self.deviceOrientation);
-            
-        }else{
-            
-            fuSetDefaultRotationMode(0);
-            
-        }
-            /* 解决旋转屏幕效果异常 onCameraChange*/
+        fuSetDefaultRotationMode(self.deviceOrientation);
+
+        /* 解决旋转屏幕效果异常 onCameraChange*/
         [FURenderer onCameraChange];
     }
     
