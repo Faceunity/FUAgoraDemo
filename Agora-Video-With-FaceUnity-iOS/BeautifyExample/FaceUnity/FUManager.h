@@ -49,8 +49,7 @@ typedef NS_ENUM(NSUInteger, FUNamaHandleType) {
 /** 选中的滤镜 */
 @property (nonatomic, strong) FUBeautyParam *seletedFliter;
 
-/** 检测方向 */
-@property (nonatomic, assign) int rotationMode;
+
 
 
 + (FUManager *)shareManager;
