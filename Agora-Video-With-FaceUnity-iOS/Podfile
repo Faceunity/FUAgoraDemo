@@ -16,5 +16,6 @@ target 'BeautifyExample' do
    pod 'AgoraRtcEngine_iOS', '~> 3.1.2'
    pod 'Nama', '~> 7.2.0'
    pod 'Masonry'
+   pod 'SVProgressHUD'
 
 end

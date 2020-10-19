@@ -8,6 +8,10 @@
 
 #import "FUCamera.h"
 #import <UIKit/UIKit.h>
+#import "FURecordEncoder.h"
+#import <SVProgressHUD/SVProgressHUD.h>
+
+
 
 typedef enum : NSUInteger {
     CommonMode,
@@ -17,7 +21,6 @@ typedef enum : NSUInteger {
 } RunMode;
 
 typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
-
 
 @interface FUCamera()<AVCaptureVideoDataOutputSampleBufferDelegate,AVCaptureAudioDataOutputSampleBufferDelegate>
 {
@@ -34,12 +37,15 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
 
 @property (assign, nonatomic) AVCaptureDevicePosition cameraPosition;
 
+@property (strong, nonatomic) FURecordEncoder          *recordEncoder;//录制编码
 
 @property (nonatomic, strong) AVCaptureDeviceInput      *audioMicInput;//麦克风输入
 @property (nonatomic, strong) AVCaptureAudioDataOutput  *audioOutput;//音频输出
 @property (copy, nonatomic) FUCameraRecordVidepCompleted recordVidepCompleted;
 
 @property (assign, nonatomic) AVCaptureSessionPreset mSessionPreset;
+
+@property (nonatomic) FUCameraFocusModel cameraFocusModel;
 @end
 
 @implementation FUCamera
@@ -64,13 +70,14 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
 }
 
 - (void)startCapture{
-
+    _cameraFocusModel = FUCameraModelAutoFace;
+    
     if (![self.captureSession isRunning] && !hasStarted) {
         hasStarted = YES;
 //        [self addAudio];
         [self.captureSession startRunning];
-//        self.exposurePoint = CGPointMake(0.49, 0.5);
-//        self.focusPoint = CGPointMake(0.49, 0.5);
+        /* 设置曝光中点 */
+        [self focusWithMode:AVCaptureFocusModeContinuousAutoFocus exposeWithMode:AVCaptureExposureModeContinuousAutoExposure atDevicePoint:CGPointMake(0.5, 0.5) monitorSubjectAreaChange:YES];
     }
 }
 
@@ -97,10 +104,11 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
 {
     if (!_captureSession) {
         _captureSession = [[AVCaptureSession alloc] init];
-        _captureSession.sessionPreset = AVCaptureSessionPresetHigh;
+        _captureSession.sessionPreset = AVCaptureSessionPreset1280x720;
         
         AVCaptureDeviceInput *deviceInput = self.isFrontCamera ? self.frontCameraInput:self.backCameraInput;
         
+        [_captureSession beginConfiguration]; // the session to which the receiver's AVCaptureDeviceInput is added.
         if ([_captureSession canAddInput: deviceInput]) {
             [_captureSession addInput: deviceInput];
         }
@@ -120,7 +128,7 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
             self.videoConnection.videoMirrored = YES;
         }
         
-        [_captureSession beginConfiguration]; // the session to which the receiver's AVCaptureDeviceInput is added.
+
         if ( [deviceInput.device lockForConfiguration:NULL] ) {
             [deviceInput.device setActiveVideoMinFrameDuration:CMTimeMake(1, 30)];
             [deviceInput.device unlockForConfiguration];
@@ -222,15 +230,26 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
         [self.captureSession removeInput:self.backCameraInput];
         if ([self.captureSession canAddInput:self.frontCameraInput]) {
             [self.captureSession addInput:self.frontCameraInput];
+            
+            [[NSNotificationCenter defaultCenter] removeObserver:self name:AVCaptureDeviceSubjectAreaDidChangeNotification object:self.camera];
+            
+            [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(subjectAreaDidChange:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:_camera];
+            
+            NSLog(@"前置添加监听----");
         }
         self.cameraPosition = AVCaptureDevicePositionFront;
     }else {
         [self.captureSession removeInput:self.frontCameraInput];
         if ([self.captureSession canAddInput:self.backCameraInput]) {
             [self.captureSession addInput:self.backCameraInput];
+            [[NSNotificationCenter defaultCenter] removeObserver:self name:AVCaptureDeviceSubjectAreaDidChangeNotification object:self.camera];
+            [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(subjectAreaDidChange:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:_camera];
+            NSLog(@"后置添加监听----");
         }
         self.cameraPosition = AVCaptureDevicePositionBack;
     }
+    
+  
     
     AVCaptureDeviceInput *deviceInput = isFront ? self.frontCameraInput:self.backCameraInput;
     
@@ -246,22 +265,49 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
         self.videoConnection.videoMirrored = isFront;
     }
     
-    [self.captureSession startRunning];
-   
+    /* 与标准视频稳定相比，这种稳定方法减少了摄像机的视野，在视频捕获管道中引入了更多的延迟，并消耗了更多的系统内存 */
+    if(self.videoConnection.supportsVideoStabilization && !isFront) {//前置保持大视野，关闭防抖
+        self.videoConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeStandard;
+        NSLog(@"activeVideoStabilizationMode = %ld",(long)self.videoConnection.activeVideoStabilizationMode);
+    }else {
+        NSLog(@"connection don't support video stabilization");
+        self.videoConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
+    }
     
+    [self.captureSession startRunning];
 }
 
 //用来返回是前置摄像头还是后置摄像头
 - (AVCaptureDevice *)cameraWithPosition:(AVCaptureDevicePosition) position {
-    //返回和视频录制相关的所有默认设备
-    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
-    //遍历这些设备返回跟position相关的设备
-    for (AVCaptureDevice *device in devices) {
-        if ([device position] == position) {
-            return device;
+
+    //    //返回和视频录制相关的所有默认设备
+    //    NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+    //    //遍历这些设备返回跟position相关的设备
+    //    for (AVCaptureDevice *device in devices) {
+    //        if ([device position] == position) {
+    //            return device;
+    //        }
+    //    }
+    //    return nil;
+    
+    if (@available(iOS 10.2, *)) {
+
+        AVCaptureDevice* newDevice = [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInDualCamera mediaType:AVMediaTypeVideo position:position];
+        if(!newDevice){
+            newDevice = [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera mediaType:AVMediaTypeVideo position:position];
         }
+        return newDevice;
+    }else{
+        //返回和视频录制相关的所有默认设备
+        NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+        //遍历这些设备返回跟position相关的设备
+        for (AVCaptureDevice *device in devices) {
+            if ([device position] == position) {
+                    return device;
+            }
+        }
+        return nil;
     }
-    return nil;
 }
 
 - (AVCaptureDevice *)camera
@@ -272,6 +318,8 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
             if ([device position] == self.cameraPosition)
             {
                 _camera = device;
+                
+                [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(subjectAreaDidChange:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:_camera];
             }
         }
     }
@@ -336,62 +384,6 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
     
 }
 
-/* AVCaptureFocusModeAutoFocus 会锁定对焦 */
-- (void)setFocusPoint:(CGPoint)focusPoint{
-    // NSLog(@"camera----对焦点----%@",NSStringFromCGPoint(focusPoint));
-    _focusPoint = focusPoint;
-    if (!self.focusPointSupported) {
-        return;
-    }
-
-    NSError *error = nil;
-    if (![self.camera lockForConfiguration:&error]) {
-        NSLog(@"Failed to set focus point: %@", [error localizedDescription]);
-        return;
-    }
-
-    self.camera.focusPointOfInterest = focusPoint;
-    self.camera.focusMode = AVCaptureFocusModeContinuousAutoFocus;
-    [self.camera unlockForConfiguration];
-}
-
-/* 这里使用持续调整曝光模式，可以通过KVO “adjustingExposure” 监视摄像头*/
-- (void)setExposurePoint:(CGPoint)exposurePoint{
-    _exposurePoint = exposurePoint;
-   // NSLog(@"camera----曝光点----%@",NSStringFromCGPoint(exposurePoint));
-    if (!self.exposurePointSupported) {
-        return;
-    }
-
-    NSError *error = nil;
-    if (![self.camera lockForConfiguration:&error]) {
-        NSLog(@"Failed to set exposure point: %@", [error localizedDescription]);
-        return;
-    }
-    self.camera.exposurePointOfInterest = exposurePoint;
-    self.camera.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
-    [self.camera unlockForConfiguration];
-}
-
-/**
- 设置白平衡模式
- 
- @param whiteBalanceMode modle
- */
-- (void)setWhiteBalanceMode:(AVCaptureWhiteBalanceMode)whiteBalanceMode{
-    if ([self.camera isWhiteBalanceModeSupported:whiteBalanceMode]) {
-        NSError *error;
-        if (![self.camera lockForConfiguration:&error]) {
-            [self.camera setWhiteBalanceMode:whiteBalanceMode];
-            [self.camera unlockForConfiguration];
-            NSLog(@"Failed to set whiteBalanceMode: %@", error);
-            return;
-        }
-        [self.camera setWhiteBalanceMode:whiteBalanceMode];
-        [self.camera unlockForConfiguration];
-    }
-}
-
 /**
  * 切换回连续对焦和曝光模式
  * 中心店对焦和曝光(centerPoint)
@@ -423,18 +415,27 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
 }
 
 
--(void)cameraChangeISO:(CGFloat)iso{
-    
-    AVCaptureDevice *captureDevice = self.camera;
+- (void)subjectAreaDidChange:(NSNotification *)notification
+{
+    dispatch_async(self.videoCaptureQueue, ^{
+        CGPoint devicePoint = CGPointMake(0.5, 0.5);
+        [self focusWithMode:AVCaptureFocusModeContinuousAutoFocus exposeWithMode:AVCaptureExposureModeContinuousAutoExposure atDevicePoint:devicePoint monitorSubjectAreaChange:YES];
+
+        [self cameraChangeModle:FUCameraModelAutoFace];
+    });
+
+}
+
+
+#pragma  mark -  曝光补偿
+- (void)setExposureValue:(float)value {
+//    NSLog(@"camera----曝光值----%lf",value);
     NSError *error;
-    if ([captureDevice lockForConfiguration:&error]) {
-        
-        //        CGFloat minISO = captureDevice.activeFormat.minISO;
-        //        CGFloat maxISO = captureDevice.activeFormat.maxISO;
-        [captureDevice setExposureModeCustomWithDuration:AVCaptureExposureDurationCurrent  ISO:iso completionHandler:nil];
-        [captureDevice unlockForConfiguration];
+    if ([self.camera lockForConfiguration:&error]){
+        [self.camera setExposureMode:AVCaptureExposureModeContinuousAutoExposure];
+        [self.camera setExposureTargetBias:value completionHandler:nil];
+        [self.camera unlockForConfiguration];
     }else{
-        NSLog(@"handle the error appropriately");
     }
 }
 
@@ -449,10 +450,8 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
         }
         _captureSession.sessionPreset = sessionPreset;
         _mSessionPreset = sessionPreset;
-
         [self.captureSession startRunning];
 
-       
         return YES;
     }
     return NO;
@@ -494,19 +493,7 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
     }
 }
 
-#pragma  mark -  HDR
 
--(void)cameraVideoHDREnabled:(BOOL)videoHDREnabled{
-    AVCaptureDevice *captureDevice = self.camera;
-    NSError *error;
-    if ([captureDevice lockForConfiguration:&error]) {
-        //NSLog(@"automaticallyAdjustsVideoHDREnabled >>>>>==%d",captureDevice.automaticallyAdjustsVideoHDREnabled);
-        captureDevice.automaticallyAdjustsVideoHDREnabled = videoHDREnabled;
-        [captureDevice unlockForConfiguration];
-        
-    }else{
-    }
-}
 
 
 - (BOOL)focusPointSupported
@@ -528,6 +515,18 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection{
     if (captureOutput == self.audioOutput) {
+        
+        if (runMode == VideoRecordMode) {
+            
+            if (self.recordEncoder == nil) {
+                return ;
+            }
+            CFRetain(sampleBuffer);
+            // 进行数据编码
+            [self.recordEncoder encodeFrame:sampleBuffer isVideo:NO];
+
+            CFRelease(sampleBuffer);
+        }
         return ;
     }
     
@@ -535,10 +534,92 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
     {
         [self.delegate didOutputVideoSampleBuffer:sampleBuffer];
     }
+    /* 人脸对焦判断 */
+    [self cameraFocusAndExpose];
     
-  
+    switch (runMode) {
+        case CommonMode:
+            
+            break;
+            
+        case PhotoTakeMode:
+        {
+            runMode = CommonMode;
+            CVPixelBufferRef buffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+            UIImage *image = [self imageFromPixelBuffer:buffer];
+            if (image) {
+                UIImageWriteToSavedPhotosAlbum(image, self, @selector(image:didFinishSavingWithError:contextInfo:), NULL);
+            }
+        }
+            break;
+            
+        case VideoRecordMode:
+
+            if (self.recordEncoder == nil) {
+                NSDate *currentDate = [NSDate date];//获取当前时间，日期
+                NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+                [dateFormatter setDateFormat:@"YYYYMMddhhmmssSS"];
+                NSString *dateString = [dateFormatter stringFromDate:currentDate];
+                NSString *videoPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.mp4",dateString]];
+
+                CVPixelBufferRef buffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+                float frameWidth = CVPixelBufferGetWidth(buffer);
+                float frameHeight = CVPixelBufferGetHeight(buffer);
+
+                if (frameWidth != 0 && frameHeight != 0) {
+                    
+                    self.recordEncoder = [FURecordEncoder encoderForPath:videoPath Height:frameHeight width:frameWidth channels:1 samples:44100];
+                    return ;
+                }
+            }
+            CFRetain(sampleBuffer);
+            // 进行数据编码
+            [self.recordEncoder encodeFrame:sampleBuffer isVideo:YES];
+            CFRelease(sampleBuffer);
+            break;
+        case VideoRecordEndMode:
+        {
+            runMode = CommonMode;
+            
+//            if (self.recordEncoder.writer.status == AVAssetWriterStatusUnknown) {
+//                self.recordEncoder = nil;
+//            }else{
+              __weak typeof(self)weakSelf  = self ;
+            [self.recordEncoder finishWithCompletionHandler:^{
+                [weakSelf videpCompleted];
+            }];
+        }
+        break;
+        default:
+            break;
+    }
 }
 
+#pragma  mark -  人脸曝光逻辑
+-(void)cameraFocusAndExpose{
+    if (_cameraFocusModel == FUCameraModelAutoFace) {
+        
+         if ([self.dataSource respondsToSelector:@selector(faceCenterInImage:)]) {
+           CGPoint center =  [self.dataSource faceCenterInImage:self];
+            if (center.y >= 0) {
+                [self focusWithMode:AVCaptureFocusModeContinuousAutoFocus exposeWithMode:AVCaptureExposureModeContinuousAutoExposure atDevicePoint:center monitorSubjectAreaChange:YES];
+            }else{
+                [self focusWithMode:AVCaptureFocusModeContinuousAutoFocus exposeWithMode:AVCaptureExposureModeContinuousAutoExposure atDevicePoint:CGPointMake(0.5, 0.5) monitorSubjectAreaChange:YES];
+            }
+        }
+    }
+}
+
+
+
+-(void)videpCompleted{
+    NSLog(@"1111");
+    NSString *path = self.recordEncoder.path;
+    self.recordEncoder = nil;
+    if (self.recordVidepCompleted) {
+        self.recordVidepCompleted(path);
+    }
+}
 
 
 - (void)takePhotoAndSave
@@ -602,6 +683,24 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
     return image;
 }
 
+- (void)image: (UIImage *) image didFinishSavingWithError: (NSError *) error contextInfo: (void *) contextInfo
+{
+    if(error != NULL){
+        [SVProgressHUD showErrorWithStatus:NSLocalizedString(@"保存图片失败", nil)];
+    }else{
+        [SVProgressHUD showSuccessWithStatus:NSLocalizedString(@"图片已保存到相册", nil)];
+    }
+}
+
+- (void)video:(NSString *)videoPath didFinishSavingWithError:(NSError *)error contextInfo:(void *)contextInfo
+{
+    if(error != NULL){
+        [SVProgressHUD showErrorWithStatus:NSLocalizedString(@"保存视频失败", nil)];
+        
+    }else{
+        [SVProgressHUD showSuccessWithStatus:NSLocalizedString(@"视频已保存到相册", nil)];
+    }
+}
 
 - (void)setCaptureVideoOrientation:(AVCaptureVideoOrientation) orientation {
     
@@ -615,18 +714,68 @@ typedef void(^FUCameraRecordVidepCompleted)(NSString *videoPath);
 
 }
 
-- (void)setExposureValue:(float)value {
-//    NSLog(@"camera----曝光值----%lf",value);
-    NSError *error;
-    if ([self.camera lockForConfiguration:&error]){
-        [self.camera setExposureMode:AVCaptureExposureModeContinuousAutoExposure];
-        [self.camera setExposureTargetBias:value completionHandler:nil];
-        [self.camera unlockForConfiguration];
-    }else{
-    }
+
+
+- (void)focusWithMode:(AVCaptureFocusMode)focusMode exposeWithMode:(AVCaptureExposureMode)exposureMode atDevicePoint:(CGPoint)point monitorSubjectAreaChange:(BOOL)monitorSubjectAreaChange
+{
+    dispatch_async(self.videoCaptureQueue, ^{
+        AVCaptureDevice *device = self.camera;
+
+        NSError *error = nil;
+        if ( [device lockForConfiguration:&error] ) {
+            // Setting (focus/exposure)PointOfInterest alone does not initiate a (focus/exposure) operation.
+            // Call -set(Focus/Exposure)Mode: to apply the new point of interest.
+            if ( device.isFocusPointOfInterestSupported && [device isFocusModeSupported:focusMode] ) {
+                device.focusPointOfInterest = point;
+                device.focusMode = focusMode;
+            }
+
+            if ( device.isExposurePointOfInterestSupported && [device isExposureModeSupported:exposureMode] ) {
+                device.exposurePointOfInterest = point;
+                device.exposureMode = exposureMode;
+            }
+        
+//            NSLog(@"---point --%@",NSStringFromCGPoint(point));
+            
+            device.subjectAreaChangeMonitoringEnabled = monitorSubjectAreaChange;
+            [device unlockForConfiguration];
+        }
+        else {
+            NSLog( @"Could not lock device for configuration: %@", error );
+        }
+    });
 }
 
+
+-(void)cameraChangeModle:(FUCameraFocusModel)modle
+{
+    _cameraFocusModel = modle;
+}
+
+
+//缩放
+- (CGFloat)maxZoomFactor
+{
+    return MIN(self.camera.activeFormat.videoMaxZoomFactor, 4.0f);
+}
+
+- (void)setZoomValue:(CGFloat)zoomValue
+{
+    if (!self.camera.isRampingVideoZoom) {
+        NSError *error;
+        if ([self.camera lockForConfiguration:&error]) {
+            CGFloat zoomFactor = pow([self maxZoomFactor], zoomValue);
+            self.camera.videoZoomFactor = zoomFactor;
+            [self.camera unlockForConfiguration];
+        }
+    }
+    
+}
+
+
 - (void)dealloc{
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    
     NSLog(@"camera dealloc");
 }
 @end

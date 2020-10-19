@@ -94,6 +94,36 @@ self.videoFilter.enabled = YES;
 
 ```
 
+#### 本地视图设置
+
+* Agora 自采集自渲染
+
+```objc
+
+    [self.localView layoutIfNeeded];
+    self.glVideoView = [[AGMEAGLVideoView alloc] initWithFrame:self.localView.frame];
+//    [self.glVideoView setRenderMode:(AGMRenderMode_Fit)];
+    [self.localView addSubview:self.glVideoView];
+    [self.capturerManager setVideoView:self.glVideoView];
+    // set custom capturer as video source
+    [self.rtcEngineKit setVideoSource:self.capturerManager];
+    
+```
+
+* FU 自采集自渲染
+
+```objc
+    self.fuCamera = [[FUCamera alloc] initWithCameraPosition:AVCaptureDevicePositionFront captureFormat:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange];
+    self.fuCamera.delegate = self;
+    [self.fuCamera startCapture];
+    
+    self.fuGlView = [[FUOpenGLView alloc] initWithFrame:self.view.frame];
+    [self.localView addSubview:self.fuGlView];
+    [self.rtcEngineKit setVideoSource:self];
+```
+
+
+
 ##### 自定义滤镜模块
 
 创建一个实现 `VideoFilterDelegate` 协议的类 `FUManager`，在 `processFrame:` 代理方法里面处理视频帧数据。
@@ -109,32 +139,6 @@ self.videoFilter.enabled = YES;
     }
     return frame;
 }
-
-```
-
-
-##### 方向适配器
-
-```objc
-
-在`CapturerManager.h`中查看定义
-self.videoAdapterFilter = [[AGMVideoAdapterFilter alloc] init];
-self.videoAdapterFilter.ignoreAspectRatio = YES;
-[self.cameraCapturer addVideoSink:self.videoAdapterFilter];
-
-```
-
-
-##### 模块之间连接
-
-```objc
-
-[self.cameraCapturer addVideoSink:self.videoAdapterFilter];
-__weak typeof(self) weakSelf = self;
-[self.videoAdapterFilter setFrameProcessingCompletionBlock:^(AGMVideoSource * _Nonnull videoSource, CMTime time) {
-    CVPixelBufferRef pixelBuffer = videoSource.framebufferForOutput.pixelBuffer;
-    [weakSelf didOutputPixelBuffer:pixelBuffer frameTime:time];
-}];
 
 ```
 
