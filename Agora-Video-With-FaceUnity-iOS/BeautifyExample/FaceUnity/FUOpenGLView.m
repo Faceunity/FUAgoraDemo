@@ -8,8 +8,9 @@
 
 #import "FUOpenGLView.h"
 #import <CoreVideo/CoreVideo.h>
-#import <OpenGLES/ES2/gl.h>
-#import <OpenGLES/ES2/glext.h>
+#import <OpenGLES/ES3/gl.h>
+#import <OpenGLES/ES3/glext.h>
+
 #define STRINGIZE(x)    #x
 #define STRINGIZE2(x)    STRINGIZE(x)
 #define SHADER_STRING(text) @ STRINGIZE2(text)
@@ -28,7 +29,7 @@ NSString *const FUYUVToRGBAFragmentShaderString = SHADER_STRING
      lowp vec3 rgb;
      
      yuv.x = texture2D(luminanceTexture, textureCoordinate).r;
-     yuv.yz = texture2D(chrominanceTexture, textureCoordinate).rg - vec2(0.5, 0.5);
+     yuv.yz = texture2D(chrominanceTexture, textureCoordinate).ra - vec2(0.5, 0.5);
      rgb = colorConversionMatrix * yuv;
      
      gl_FragColor = vec4(rgb, 1.0);
@@ -69,6 +70,9 @@ NSString *const FUPointsFrgShaderString = SHADER_STRING
  
  void main()
 {
+    if (-smoothstep(0.48, 0.5, length(gl_PointCoord - vec2(0.5))) + 1.0 == 0.0) {
+        discard;
+    }
     gl_FragColor = fragmentColor;
 }
  
@@ -139,6 +143,8 @@ enum
     int backingHeight;
     
     CGSize boundsSizeAtFrameBufferEpoch;
+    
+    GLuint texture;
 }
 
 + (Class)layerClass
@@ -150,6 +156,7 @@ enum
 {
     if (self = [super initWithCoder:aDecoder]) {
         
+        self.disapplePointIndex = -1 ;
         _contextQueue = dispatch_queue_create("com.faceunity.contextQueue", DISPATCH_QUEUE_SERIAL);
         
         self.contentScaleFactor = [[UIScreen mainScreen] scale];
@@ -160,8 +167,11 @@ enum
         eaglLayer.drawableProperties = @{ kEAGLDrawablePropertyRetainedBacking :[NSNumber numberWithBool:NO],
                                           kEAGLDrawablePropertyColorFormat : kEAGLColorFormatRGBA8};
         
-        _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-        
+        _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+        if (!_glContext) {
+            NSLog(@"This devicde is not support OpenGLES3,try to create OpenGLES2");
+            _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+        }
         if (!self.glContext) {
             NSLog(@"failed to create context");
         }
@@ -172,6 +182,8 @@ enum
                 NSLog(@"Error at CVOpenGLESTextureCacheCreate %d", err);
             }
         }
+        self.origintation = FUOpenGLViewOrientationPortrait ;
+        self.contentMode = FUOpenGLViewContentModeScaleAspectFill;
     }
         
     return self;
@@ -179,8 +191,9 @@ enum
 
 - (instancetype)initWithFrame:(CGRect)frame{
     if (self = [super initWithFrame:frame] ) {
-        
+        self.disapplePointIndex = -1 ;
         _contextQueue = dispatch_queue_create("com.faceunity.contextQueue", DISPATCH_QUEUE_SERIAL);
+        
         self.contentScaleFactor = [[UIScreen mainScreen] scale];
         
         CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
@@ -189,11 +202,13 @@ enum
         eaglLayer.drawableProperties = @{ kEAGLDrawablePropertyRetainedBacking :[NSNumber numberWithBool:NO],
                                           kEAGLDrawablePropertyColorFormat : kEAGLColorFormatRGBA8};
         
-        _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-        
+        _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+        if (!_glContext) {
+            NSLog(@"This devicde is not support OpenGLES3,try to create OpenGLES2");
+            _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+        }
         if (!self.glContext) {
             NSLog(@"failed to create context");
-            return nil;
         }
         
         if (!videoTextureCache) {
@@ -202,6 +217,8 @@ enum
                 NSLog(@"Error at CVOpenGLESTextureCacheCreate %d", err);
             }
         }
+        self.origintation = FUOpenGLViewOrientationPortrait ;
+        self.contentMode = FUOpenGLViewContentModeScaleAspectFill;
     }
     return self;
 }
@@ -226,20 +243,22 @@ enum
 
 - (void)dealloc
 {
+    
     dispatch_sync(_contextQueue, ^{
         [self destroyDisplayFramebuffer];
         [self destoryProgram];
-        
-        if(videoTextureCache) {
-            CVOpenGLESTextureCacheFlush(videoTextureCache, 0);
-            CFRelease(videoTextureCache);
-            videoTextureCache = NULL;
+        if(self->videoTextureCache) {
+            CVOpenGLESTextureCacheFlush(self->videoTextureCache, 0);
+            CFRelease(self->videoTextureCache);
+            self->videoTextureCache = NULL;
+            
         }
     });
 }
 
 - (void)createDisplayFramebuffer
 {
+    NSLog(@"createDisplayFramebuffer -----");
     [EAGLContext setCurrentContext:self.glContext];
     
     glDisable(GL_DEPTH_TEST);
@@ -249,7 +268,6 @@ enum
     
     glGenRenderbuffers(1, &renderBufferHandle);
     glBindRenderbuffer(GL_RENDERBUFFER, renderBufferHandle);
-    
     dispatch_sync(dispatch_get_main_queue(), ^{
         [self.glContext renderbufferStorage:GL_RENDERBUFFER fromDrawable:(CAEAGLLayer *)self.layer];
     });
@@ -299,6 +317,20 @@ enum
     glViewport(0, 0, (GLint)backingWidth, (GLint)backingHeight);
 }
 
+- (void)setImageDisplayFramebuffer;
+{
+    if (!frameBufferHandle)
+    {
+        [self createDisplayFramebuffer];
+    }
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferHandle);
+    
+    float bw = self.frame.size.width * [UIScreen mainScreen].scale ;
+    float bh = self.frame.size.height * [UIScreen mainScreen].scale ;
+    glViewport(0, 0, (GLint)bw, (GLint)bh);
+}
+
 - (void)destoryProgram{
     if (rgbaProgram) {
         glDeleteProgram(rgbaProgram);
@@ -318,26 +350,26 @@ enum
 
 - (void)presentFramebuffer;
 {
+
     glBindRenderbuffer(GL_RENDERBUFFER, renderBufferHandle);
     [self.glContext presentRenderbuffer:GL_RENDERBUFFER];
-    
-    glFinish() ;
+//    glFinish();
 }
 
 - (void)displayPixelBuffer:(CVPixelBufferRef)pixelBuffer
 {
-    [self displayPixelBuffer:pixelBuffer withLandmarks:NULL count:0];
+    [self displayPixelBuffer:pixelBuffer withLandmarks:NULL count:0 MAX:NO];
 }
 
-- (void)displayPixelBuffer:(CVPixelBufferRef)pixelBuffer withLandmarks:(float *)landmarks count:(int)count
+- (void)displayPixelBuffer:(CVPixelBufferRef)pixelBuffer withLandmarks:(float *)landmarks count:(int)count MAX:(BOOL)max
 {
     if (pixelBuffer == NULL) return;
     
     CVPixelBufferRetain(pixelBuffer);
-    dispatch_sync(_contextQueue, ^{
-
-        frameWidth = (int)CVPixelBufferGetWidth(pixelBuffer);
-        frameHeight = (int)CVPixelBufferGetHeight(pixelBuffer);
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    dispatch_async(_contextQueue, ^{  //dispatch_sync  iphone8p 可能死锁
+        self->frameWidth = (int)CVPixelBufferGetWidth(pixelBuffer);
+        self->frameHeight = (int)CVPixelBufferGetHeight(pixelBuffer);
         
         if ([EAGLContext currentContext] != self.glContext) {
             if (![EAGLContext setCurrentContext:self.glContext]) {
@@ -356,18 +388,142 @@ enum
             [self prepareToDrawYUVPixelBuffer:pixelBuffer];
         }
         
-        CVPixelBufferRelease(pixelBuffer);
-        
         if (landmarks) {
-            [self prepareToDrawLandmarks:landmarks count:count];
+            [self prepareToDrawLandmarks:landmarks count:count MAX:max zoomScale:1];
         }
         
         [self presentFramebuffer];
+        
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+        CVPixelBufferRelease(pixelBuffer);
     });
     
 }
 
-- (void)prepareToDrawLandmarks:(float *)landmarks count:(int)count
+- (void)displayImageData:(void *)imageData withSize:(CGSize)size{
+    
+    frameWidth = (int)size.width;
+    frameHeight = (int)size.height;
+    
+    if ([EAGLContext currentContext] != self.glContext) {
+        if (![EAGLContext setCurrentContext:self.glContext]) {
+            NSLog(@"fail to setCurrentContext");
+        }
+    }
+    [self setDisplayFramebuffer];
+    
+    if (!rgbaProgram) {
+        [self loadShadersRGBA];
+    }
+    
+    if (texture == 0) {
+        glGenTextures(1, &texture);
+    }
+    
+    glBindTexture(GL_TEXTURE_2D, texture);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.width, size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    glUseProgram(rgbaProgram);
+    
+    glClearColor(248/255.0f, 248/255.0f, 248/255.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(displayInputTextureUniform, 1);
+    
+    [self updateVertices];
+    
+    // 更新顶点数据
+    glVertexAttribPointer(furgbaPositionAttribute, 2, GL_FLOAT, 0, 0, vertices);
+    glEnableVertexAttribArray(furgbaPositionAttribute);
+    
+    GLfloat quadTextureData[] =  {
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f,  0.0f,
+        1.0f,  0.0f,
+    };
+    
+    glVertexAttribPointer(furgbaTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, quadTextureData);
+    glEnableVertexAttribArray(furgbaTextureCoordinateAttribute);
+    
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    
+    [self presentFramebuffer];
+}
+
+- (void)displayImageData:(void *)imageData withSize:(CGSize)size Center:(CGPoint)center Landmarks:(float *)landmarks count:(int)count {
+    
+    frameWidth = (int)size.width;
+    frameHeight = (int)size.height;
+    
+    if ([EAGLContext currentContext] != self.glContext) {
+        if (![EAGLContext setCurrentContext:self.glContext]) {
+            NSLog(@"fail to setCurrentContext");
+        }
+    }
+    [self setImageDisplayFramebuffer];
+    
+    if (!rgbaProgram) {
+        [self loadShadersRGBA];
+    }
+    
+    if (texture == 0) {
+        glGenTextures(1, &texture);
+    }
+    
+    glBindTexture(GL_TEXTURE_2D, texture);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.width, size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    glUseProgram(rgbaProgram);
+    
+    glClearColor(248/255.0f, 248/255.0f, 248/255.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(displayInputTextureUniform, 1);
+    
+    [self updateVertices];
+    
+    // 更新顶点数据
+    glVertexAttribPointer(furgbaPositionAttribute, 2, GL_FLOAT, 0, 0, vertices);
+    glEnableVertexAttribArray(furgbaPositionAttribute);
+    
+    GLfloat quadTextureData[] =  {
+        center.x - 0.1, center.y + 0.1,
+        center.x + 0.1, center.y + 0.1,
+        center.x - 0.1, center.y - 0.1,
+        center.x + 0.1, center.y - 0.1,
+    };
+    
+    glVertexAttribPointer(furgbaTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, quadTextureData);
+    glEnableVertexAttribArray(furgbaTextureCoordinateAttribute);
+    
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    
+    if (landmarks) {
+        [self drawImageLandmarks:landmarks count:count center:center];
+    }
+    
+    [self presentFramebuffer];
+}
+
+
+- (void)drawImageLandmarks:(float *)landmarks count:(int)count center:(CGPoint)center
 {
     if (!pointProgram) {
         [self loadPointsShaders];
@@ -375,41 +531,215 @@ enum
     
     glUseProgram(pointProgram);
     
-    count = count/2;
+    count = count;
     
     float sizeData[count];
     
     float colorData[count * 4];
     
+    float newLandmarks[count *2];
+    
+    float bw = self.frame.size.width * [UIScreen mainScreen].scale ;
+    float bh = self.frame.size.height * [UIScreen mainScreen].scale ;
+    
     const float width   = frameWidth;
     const float height  = frameHeight;
-    const float dH      = (float)backingHeight / height;
-    const float dW      = (float)backingWidth  / width;
+    const float dH      = bh / height;
+    const float dW      = bw / width;
     const float dd      = MAX(dH, dW);
-    const float h       = (height * dd / (float)backingHeight);
-    const float w       = (width  * dd / (float)backingWidth );
+    const float h       = (height * dd / (float)bw) * 10/2;
+    const float w       = (width  * dd / (float)bw) * 10/2;
     
-    for (int i = 0; i < count; i++)
+    for (int i = 0; i < count/2; i++)
     {
+        if (self.disapplePointIndex == i) {
+            continue ;
+        }
         //点的大小
-        sizeData[i] = [UIScreen mainScreen].scale * 1.5;
+        sizeData[i] = [UIScreen mainScreen].scale * 5;
         
         //点的颜色
-        colorData[4 * i] = 0.0;
-        colorData[4 * i + 1] = 1.0;
-        colorData[4 * i + 2] = 0.0;
-        colorData[4 * i + 3] = 1.0;
+        colorData[4 * i] = 1.0;
+        colorData[4 * i + 1] = .0;
+        colorData[4 * i + 2] = .0;
+        colorData[4 * i + 3] = .0;
         
         //转化坐标
-        landmarks[2 * i] = (float)((2 * landmarks[2 * i] / frameWidth - 1))*w;
-        landmarks[2 * i + 1] = (float)(1 - 2 * landmarks[2 * i + 1] / frameHeight)*h;
+        newLandmarks[2 * i] = (float)((2 * landmarks[2 * i] / frameWidth - 1)) * w - (center.x - 0.5) * 2 * w;
+        
+        newLandmarks[2 * i + 1] = (float)(1 - 2 * landmarks[2 * i + 1] / frameHeight ) * h - (0.5 - center.y) * 2 * h;
+    }
+    
+    for (int i = count/2; i < count; i++)
+    {
+        sizeData[i] = [UIScreen mainScreen].scale * 3;
+        
+        colorData[4 * i ] = 1.0;
+        colorData[4 * i + 1] = 1.0;
+        colorData[4 * i + 2] = 1.0;
+        colorData[4 * i + 3] = 1.0;
+        
+        newLandmarks[2 * i] = (float)((2 * landmarks[2 * i - count] / frameWidth - 1)) * w - (center.x - 0.5) * 2 * w;
+        newLandmarks[2 * i + 1] = (float)(1 - 2 * landmarks[2 * i + 1 - count] / frameHeight ) * h - (0.5 - center.y) * 2 * h;
     }
     
     glEnableVertexAttribArray(fuPointSize);
     glVertexAttribPointer(fuPointSize, 1, GL_FLOAT, GL_FALSE, 0, sizeData);
     
     glEnableVertexAttribArray(GLKVertexAttribPosition);
-    glVertexAttribPointer(GLKVertexAttribPosition, 2, GL_FLOAT, GL_FALSE, 0, (GLfloat *)landmarks);
+    glVertexAttribPointer(GLKVertexAttribPosition, 2, GL_FLOAT, GL_FALSE, 0, (GLfloat *)newLandmarks);
+    
+    glEnableVertexAttribArray(fuPointColor);
+    glVertexAttribPointer(fuPointColor, 4, GL_FLOAT, GL_FALSE, 0, colorData);
+    
+    glDrawArrays(GL_POINTS, 0, count);
+}
+
+- (void)displayImageData:(void *)imageData Size:(CGSize)size Landmarks:(float *)landmarks count:(int)count zoomScale:(float)zoomScale{
+    
+    frameWidth = (int)size.width;
+    frameHeight = (int)size.height;
+    
+    if ([EAGLContext currentContext] != self.glContext) {
+        if (![EAGLContext setCurrentContext:self.glContext]) {
+            NSLog(@"fail to setCurrentContext");
+        }
+    }
+    [self setDisplayFramebuffer];
+    
+    if (!rgbaProgram) {
+        [self loadShadersRGBA];
+    }
+    
+    if (texture == 0) {
+        glGenTextures(1, &texture);
+    }
+    
+    glBindTexture(GL_TEXTURE_2D, texture);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.width, size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    glUseProgram(rgbaProgram);
+    
+    glClearColor(248/255.0f, 248/255.0f, 248/255.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(displayInputTextureUniform, 1);
+    
+    [self updateVertices];
+    
+    // 更新顶点数据
+    glVertexAttribPointer(furgbaPositionAttribute, 2, GL_FLOAT, 0, 0, vertices);
+    glEnableVertexAttribArray(furgbaPositionAttribute);
+    
+    GLfloat quadTextureData[] =  {
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f,  0.0f,
+        1.0f,  0.0f,
+    };
+    
+    glVertexAttribPointer(furgbaTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, quadTextureData);
+    glEnableVertexAttribArray(furgbaTextureCoordinateAttribute);
+    
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    
+    if (landmarks) {
+        [self prepareToDrawLandmarks:landmarks count:count MAX:NO zoomScale:zoomScale];
+    }
+    
+    [self presentFramebuffer];
+}
+
+//- (void)updateVerticesRenderImage
+//{
+//    const float width   = frameWidth;
+//    const float height  = frameHeight;
+//    const float dH      = (float)backingHeight / height;
+//    const float dW      = (float)backingWidth      / width;
+//    const float dd      = MIN(dH, dW);
+//    const float h       = (height * dd / (float)backingHeight);
+//    const float w       = (width  * dd / (float)backingWidth );
+//
+//    imageVertices[0] = - w;
+//    imageVertices[1] = - h;
+//    imageVertices[2] =   w;
+//    imageVertices[3] = - h;
+//    imageVertices[4] = - w;
+//    imageVertices[5] =   h;
+//    imageVertices[6] =   w;
+//    imageVertices[7] =   h;
+//}
+
+- (void)prepareToDrawLandmarks:(float *)landmarks count:(int)count MAX:(BOOL)max zoomScale:(float)zoomScale
+{
+    if (!pointProgram) {
+        [self loadPointsShaders];
+    }
+    
+    glUseProgram(pointProgram);
+    
+    count = count;
+    
+    float sizeData[count];
+    
+    float colorData[count * 4];
+    
+    float newLandmarks[count * 2];
+    
+    float width   = frameWidth;
+    float height  = frameHeight;
+    float dH      = (float)backingHeight / height;
+    float dW      = (float)backingWidth  / width;
+    float dd      = 0;
+    if (max) {
+        dd      = MAX(dH, dW);
+    }else {
+        dd      = MIN(dH, dW) ;
+    }
+    float h       = (height * dd / (float)backingHeight);
+    float w       = (width  * dd / (float)backingWidth );
+    
+    for (int i = 0; i < count / 2; i++)
+    {
+        //点的大小
+        sizeData[i] = [UIScreen mainScreen].scale * 2 / zoomScale;
+  
+        colorData[4 * i ] = 1.0;
+        colorData[4 * i + 1] = 0.0;
+        colorData[4 * i + 2] = 0.0;
+        colorData[4 * i + 3] = 0.0;
+        
+        //转化坐标
+        newLandmarks[2 * i] = (float)((2 * landmarks[2 * i] / frameWidth - 1))*w;
+        newLandmarks[2 * i + 1] = (float)(1 - 2 * landmarks[2 * i + 1] / frameHeight)*h;
+    }
+    
+    for (int i = count/2; i < count; i++)
+    {
+        sizeData[i] = [UIScreen mainScreen].scale  / zoomScale;
+
+        colorData[4 * i ] = 1.0;
+        colorData[4 * i + 1] = 1.0;
+        colorData[4 * i + 2] = 1.0;
+        colorData[4 * i + 3] = 1.0;
+
+        newLandmarks[2 * i] = (float)((2 * landmarks[2 * i - count] / frameWidth - 1))*w;
+        newLandmarks[2 * i + 1] = (float)(1 - 2 * landmarks[2 * i + 1 - count] / frameHeight)*h;
+    }
+    
+    glEnableVertexAttribArray(fuPointSize);
+    glVertexAttribPointer(fuPointSize, 1, GL_FLOAT, GL_FALSE, 0, sizeData);
+    
+    glEnableVertexAttribArray(GLKVertexAttribPosition);
+    glVertexAttribPointer(GLKVertexAttribPosition, 2, GL_FLOAT, GL_FALSE, 0, (GLfloat *)newLandmarks);
     
     glEnableVertexAttribArray(fuPointColor);
     glVertexAttribPointer(fuPointColor, 4, GL_FLOAT, GL_FALSE, 0, colorData);
@@ -459,11 +789,55 @@ enum
         0.0f,  0.0f,
         1.0f,  0.0f,
     };
+    
+    if (_origintation == FUOpenGLViewOrientationPortrait) {
+        float quadTextureData0[] =  {
+                0.0f, 1.0f,
+                1.0f, 1.0f,
+                0.0f,  0.0f,
+                1.0f,  0.0f,
+        };
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+    
+    if (_origintation == FUOpenGLViewOrientationLandscapeRight) {
+        float quadTextureData0[] =  {
+            1.0f, 1.0f,
+            1.0f, 0.0f,
+            0.0f,  1.0f,
+            0.0f,  0.0f,
+        };
+        
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+    
+    if (_origintation == FUOpenGLViewOrientationPortraitUpsideDown) {
+        float quadTextureData0[] =  {
+            1.0f, 0.0f,
+            0.0f, 0.0f,
+            1.0f,  1.0f,
+            0.0f,  1.0f,
+        };
+        
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+    
+    if (_origintation == FUOpenGLViewOrientationLandscapeLeft) {
+        float quadTextureData0[] =  {
+            0.0f, 0.0f,
+            0.0f, 1.0f,
+            1.0f,  0.0f,
+            1.0f,  1.0f,
+        };
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+
+    
+    
     glVertexAttribPointer(furgbaTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, quadTextureData);
     glEnableVertexAttribArray(furgbaTextureCoordinateAttribute);
     
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    
     if (rgbaTexture) {
         CFRelease(rgbaTexture);
         rgbaTexture = NULL;
@@ -493,10 +867,10 @@ enum
                                                        pixelBuffer,
                                                        NULL,
                                                        GL_TEXTURE_2D,
-                                                       GL_RED_EXT,
+                                                       GL_LUMINANCE,
                                                        frameWidth,
                                                        frameHeight,
-                                                       GL_RED_EXT,
+                                                       GL_LUMINANCE,
                                                        GL_UNSIGNED_BYTE,
                                                        0,
                                                        &luminanceTextureRef);
@@ -515,10 +889,10 @@ enum
                                                        pixelBuffer,
                                                        NULL,
                                                        GL_TEXTURE_2D,
-                                                       GL_RG_EXT,
+                                                       GL_LUMINANCE_ALPHA,
                                                        frameWidth / 2,
                                                        frameHeight / 2,
-                                                       GL_RG_EXT,
+                                                       GL_LUMINANCE_ALPHA,
                                                        GL_UNSIGNED_BYTE,
                                                        1,
                                                        &chrominanceTextureRef);
@@ -526,12 +900,12 @@ enum
         NSLog(@"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err);
     }
     
-    glClearColor(0.1f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
     glBindTexture(GL_TEXTURE_2D, CVOpenGLESTextureGetName(chrominanceTextureRef));
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    glClearColor(0.1f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
     
     // Use shader program.
     glUseProgram(rgbaToYuvProgram);
@@ -565,6 +939,50 @@ enum
         1.0f,  0.0f,
     };
     
+    if (_origintation == FUOpenGLViewOrientationPortrait) {
+        float quadTextureData0[] =  {
+                0.0f, 1.0f,
+                1.0f, 1.0f,
+                0.0f,  0.0f,
+                1.0f,  0.0f,
+        };
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+    
+    if (_origintation == FUOpenGLViewOrientationLandscapeRight) {
+        float quadTextureData0[] =  {
+            1.0f, 1.0f,
+            1.0f, 0.0f,
+            0.0f,  1.0f,
+            0.0f,  0.0f,
+        };
+        
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+    
+    if (_origintation == FUOpenGLViewOrientationPortraitUpsideDown) {
+        float quadTextureData0[] =  {
+            1.0f, 0.0f,
+            0.0f, 0.0f,
+            1.0f,  1.0f,
+            0.0f,  1.0f,
+        };
+        
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+    
+    if (_origintation == FUOpenGLViewOrientationLandscapeLeft) {
+        float quadTextureData0[] =  {
+            0.0f, 0.0f,
+            0.0f, 1.0f,
+            1.0f,  0.0f,
+            1.0f,  1.0f,
+        };
+        memcpy(quadTextureData, quadTextureData0, sizeof(quadTextureData));
+    }
+
+    
+    
     glVertexAttribPointer(fuyuvConversionTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, quadTextureData);
     glEnableVertexAttribArray(fuyuvConversionTextureCoordinateAttribute);
     
@@ -584,24 +1002,57 @@ enum
 
 - (void)updateVertices
 {
-    const float width   = frameWidth;
-    const float height  = frameHeight;
-    const float dH      = (float)backingHeight / height;
-    const float dW      = (float)backingWidth      / width;
-    const float dd      = MAX(dH, dW);
-    const float h       = (height * dd / (float)backingHeight);
-    const float w       = (width  * dd / (float)backingWidth );
+    float height   = frameHeight;
+    float width  = frameWidth;
+    if (_origintation == FUOpenGLViewOrientationLandscapeRight || _origintation == FUOpenGLViewOrientationLandscapeLeft) {
+        height   = frameWidth;
+        width  = frameHeight;
+    }
     
-    vertices[0] = - w;
-    vertices[1] = - h;
-    vertices[2] =   w;
-    vertices[3] = - h;
-    vertices[4] = - w;
-    vertices[5] =   h;
-    vertices[6] =   w;
-    vertices[7] =   h;
+    float dH      = (float)backingHeight / height;
+    float dW      = (float)backingWidth      / width;
+    
+    if(_contentMode == FUOpenGLViewContentModeScaleToFill){
+        vertices[0] = - 1;
+        vertices[1] = - 1;
+        vertices[2] =   1;
+        vertices[3] = - 1;
+        vertices[4] = - 1;
+        vertices[5] =   1;
+        vertices[6] =   1;
+        vertices[7] =   1;
+    }
+    
+    if (_contentMode == FUOpenGLViewContentModeScaleAspectFill) {
+        float dd      = MAX(dH, dW) ;
+        float h       = (height * dd / (float)backingHeight);
+        float w       = (width  * dd / (float)backingWidth );
+        
+        vertices[0] = - w;
+        vertices[1] = - h;
+        vertices[2] =   w;
+        vertices[3] = - h;
+        vertices[4] = - w;
+        vertices[5] =   h;
+        vertices[6] =   w;
+        vertices[7] =   h;
+    }
+    
+    if (_contentMode == FUOpenGLViewContentModeScaleAspectFit) {
+        float dd      = MIN(dH, dW) ;
+        float h       = (height * dd / (float)backingHeight);
+        float w       = (width  * dd / (float)backingWidth );
+        
+        vertices[0] = - w;
+        vertices[1] = - h;
+        vertices[2] =   w;
+        vertices[3] = - h;
+        vertices[4] = - w;
+        vertices[5] =   h;
+        vertices[6] =   w;
+        vertices[7] =   h;
+    }
 }
-
 
 #pragma mark -  OpenGL ES 2 shader compilation
 

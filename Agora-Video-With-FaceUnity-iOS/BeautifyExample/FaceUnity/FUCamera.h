@@ -8,6 +8,14 @@
 
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
+@class FUCamera;
+typedef NS_ENUM( NSInteger, FUCameraFocusModel) {
+    /* 先找人脸对焦模式 */
+    FUCameraModelAutoFace,
+    /* 固定点对焦模式 */
+    FUCameraModelChangeless
+};
+
 
 @protocol FUCameraDelegate <NSObject>
 
@@ -15,28 +23,21 @@
 
 @end
 
+@protocol FUCameraDataSource <NSObject>
+
+- (CGPoint)faceCenterInImage:(FUCamera *)camera ;
+
+@end
+
+
 @interface FUCamera : NSObject
 @property (nonatomic, weak) id<FUCameraDelegate> delegate;
+@property (nonatomic, weak) id<FUCameraDataSource> dataSource;
 @property (nonatomic, assign, readonly) BOOL isFrontCamera;
 @property (assign, nonatomic) int captureFormat; //采集格式
 @property (copy  , nonatomic) dispatch_queue_t  videoCaptureQueue;//视频采集的队列
 @property (copy  , nonatomic) dispatch_queue_t  audioCaptureQueue;//音频采集队列
 @property (copy  , nonatomic) dispatch_queue_t  tmpCaptureQueue;//视频采集的队列
-
-/**
- 锁定焦距
- */
-@property (assign, nonatomic) CGPoint focusPoint;
-
-/**
- 锁定曝光
- */
-@property (assign, nonatomic) CGPoint exposurePoint;
-
-/**
- * White balance mode. Default is: AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance
- */
-@property (nonatomic) AVCaptureWhiteBalanceMode whiteBalanceMode;
 
 
 - (instancetype)initWithCameraPosition:(AVCaptureDevicePosition)cameraPosition captureFormat:(int)captureFormat;
@@ -66,14 +67,6 @@
  @param orientation 方向
  */
 - (void)setCaptureVideoOrientation:(AVCaptureVideoOrientation)orientation;
-
-
-/**
- 设置曝光补偿
-
- @param value 一般 -8 ~ 8
- */
-- (void)setExposureValue:(float)value ;
 
 /**
  查询当前相机最大曝光补偿信息
@@ -113,20 +106,22 @@
 -(void)changeVideoFrameRate:(int)frameRate;
 
 
-/**
- 修改HDR
+- (void)setExposureValue:(float)value;
 
- @param videoHDREnabled 默认开启
- */
--(void)cameraVideoHDREnabled:(BOOL)videoHDREnabled;
-
-/**
- ISO 设置
-
- @param value  0.0 - 1.0 光感度  46 -736
- */
--(void)cameraChangeISO:(CGFloat)value;
+/// 设置曝光模式和兴趣点
+/// @param focusMode 对焦模式
+/// @param exposureMode 曝光模式
+/// @param point 兴趣点
+/// @param monitorSubjectAreaChange   是否监听主题变化
+- (void)focusWithMode:(AVCaptureFocusMode)focusMode exposeWithMode:(AVCaptureExposureMode)exposureMode atDevicePoint:(CGPoint)point monitorSubjectAreaChange:(BOOL)monitorSubjectAreaChange;
 
 
+///  修改对焦模式
+/// @param modle 对焦模式
+-(void)cameraChangeModle:(FUCameraFocusModel)modle;
+
+//  缩放
+//  可用于模拟对焦
+- (void)setZoomValue:(CGFloat)zoomValue;
 
 @end
