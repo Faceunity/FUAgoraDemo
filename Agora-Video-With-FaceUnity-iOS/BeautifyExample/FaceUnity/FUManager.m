@@ -68,7 +68,7 @@ static FUManager *shareManager = NULL;
         [FURenderer setMaxFaces:4];
         self.deviceOrientation = 0;
         
-        [[FUTestRecorder shareRecorder] setupRecord];
+//        [[FUTestRecorder shareRecorder] setupRecord];
     }
     
     return self;
@@ -638,7 +638,7 @@ static int oldHandle = 0;
     if(self.enabled) {
         
         CVPixelBufferRef buffer = [self renderItemsToPixelBuffer:frame];
-        [[FUTestRecorder shareRecorder] processFrameWithLog];
+//        [[FUTestRecorder shareRecorder] processFrameWithLog];
         
         return buffer;
     }

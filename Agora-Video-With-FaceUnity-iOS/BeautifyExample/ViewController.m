@@ -20,7 +20,7 @@
 #import "FUCamera.h"
 #import "FUOpenGLView.h"
 
-#import "FUTestRecorder.h"
+//#import "FUTestRecorder.h"
 
 @interface ViewController () <AgoraRtcEngineDelegate,FUAPIDemoBarDelegate, AgoraVideoSourceProtocol, FUCameraDelegate>
 
@@ -55,7 +55,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-    [[FUTestRecorder shareRecorder] setupRecord];
+//    [[FUTestRecorder shareRecorder] setupRecord];
     self.remoteView.hidden = YES;
     
     /** load Faceu */
@@ -74,6 +74,7 @@
                                                                                   orientationMode:AgoraVideoOutputOrientationModeFixedPortrait];
     [self.rtcEngineKit setVideoEncoderConfiguration:config];
     
+    // set 1 Agora camera render set 0 FU camera render
 #if 1 // 设置 1 测试 Agora 自采集自渲染，设置 0 测试 FU 自采集自渲染
     // init process manager
     self.processingManager = [[VideoProcessingManager alloc] init];
@@ -114,53 +115,27 @@
     [self.fuCamera startCapture];
     
     self.fuGlView = [[FUOpenGLView alloc] initWithFrame:self.view.frame];
-    [self.view insertSubview:self.fuGlView atIndex:0];
-    self.localView.hidden = YES;
-    self.demoBar.hidden = YES;
+    [self.localView addSubview:self.fuGlView];
     [self.rtcEngineKit setVideoSource:self];
     
 
     
 #endif
-
-    // 注册通知
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidChangeStatusBar) name:UIApplicationDidChangeStatusBarOrientationNotification object:nil];
     
     [self.rtcEngineKit joinChannelByToken:nil channelId:self.channelName info:nil uid:0 joinSuccess:^(NSString * _Nonnull channel, NSUInteger uid, NSInteger elapsed) {
         
     }];
 }
 
-- (void)applicationDidChangeStatusBar {
-    UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
-    
-    switch (orientation) {
-        
-        case UIDeviceOrientationPortrait:
-            
-            break;
-            
-        case UIDeviceOrientationLandscapeLeft:
-            
-            [self.fuCamera setCaptureVideoOrientation:(AVCaptureVideoOrientationLandscapeRight)];
-            break;
-            
-            
-        case UIDeviceOrientationLandscapeRight:
-            
-            [self.fuCamera setCaptureVideoOrientation:(AVCaptureVideoOrientationLandscapeLeft)];
-            break;
-            
-        default:
-            break;
-    }
-    
-}
+
+
+
+#pragma mark ----------FUCameraDelegate-----
 
 - (void)didOutputVideoSampleBuffer:(CMSampleBufferRef)sampleBuffer {
     CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
     CVPixelBufferLockBaseAddress(pixelBuffer, 0);
-    [[FUTestRecorder shareRecorder] processFrameWithLog];
+//    [[FUTestRecorder shareRecorder] processFrameWithLog];
     
     CVPixelBufferRef buffer = [[FUManager shareManager] renderItemsToPixelBuffer:pixelBuffer];
     CMTime timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
@@ -237,9 +212,8 @@
 /// release
 - (void)dealloc {
     
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
     [[FUManager shareManager] destoryItems];
-    
+    [self.fuCamera stopCapture];
     [self.capturerManager stopCapture];
     [self.rtcEngineKit leaveChannel:nil];
     [self.rtcEngineKit stopPreview];
