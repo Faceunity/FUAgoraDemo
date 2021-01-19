@@ -17,12 +17,8 @@
 #import "FUAPIDemoBar.h"
 #import <Masonry/Masonry.h>
 #import <AGMRenderer/AGMRenderer.h>
-#import "FUCamera.h"
-#import "FUOpenGLView.h"
 
-#import "FUTestRecorder.h"
-
-@interface ViewController () <AgoraRtcEngineDelegate,FUAPIDemoBarDelegate, AgoraVideoSourceProtocol, FUCameraDelegate>
+@interface ViewController () <AgoraRtcEngineDelegate,FUAPIDemoBarDelegate, AgoraVideoSourceProtocol>
 
 @property (nonatomic, strong) CapturerManager *capturerManager;
 @property (nonatomic, strong) FUManager *videoFilter;
@@ -34,17 +30,14 @@
 
 @property (nonatomic, strong) IBOutlet UIButton *switchBtn;
 @property (nonatomic, strong) IBOutlet UIButton *remoteMirrorBtn;
-@property (nonatomic, strong) IBOutlet UILabel *beautyStatus;
 @property (nonatomic, strong) IBOutlet UIView *missingAuthpackLabel;
+@property (weak, nonatomic) IBOutlet UIButton *muteAudioBtn;
 @property (nonatomic, strong) AgoraRtcVideoCanvas *videoCanvas;
 @property (nonatomic, assign) AgoraVideoMirrorMode localVideoMirrored;
 @property (nonatomic, assign) AgoraVideoMirrorMode remoteVideoMirrored;
 @property (nonatomic, strong) AGMEAGLVideoView *glVideoView;
 /**faceU */
 @property(nonatomic, strong) FUAPIDemoBar *demoBar;
-
-@property (nonatomic, strong) FUCamera *fuCamera;
-@property (nonatomic, strong) FUOpenGLView *fuGlView;
 
 
 @end
@@ -55,7 +48,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-    [[FUTestRecorder shareRecorder] setupRecord];
     self.remoteView.hidden = YES;
     
     /** load Faceu */
@@ -69,12 +61,11 @@
     [self.rtcEngineKit enableVideo];
     [self.rtcEngineKit setParameters:@"{\"che.video.zerocopy\":true}"];
     AgoraVideoEncoderConfiguration* config = [[AgoraVideoEncoderConfiguration alloc] initWithSize:AgoraVideoDimension1280x720
-                                                                                        frameRate:AgoraVideoFrameRateFps30
+                                                                                        frameRate:AgoraVideoFrameRateFps15
                                                                                           bitrate:AgoraVideoBitrateStandard
                                                                                   orientationMode:AgoraVideoOutputOrientationModeFixedPortrait];
     [self.rtcEngineKit setVideoEncoderConfiguration:config];
     
-#if 1 // 设置 1 测试 Agora 自采集自渲染，设置 0 测试 FU 自采集自渲染
     // init process manager
     self.processingManager = [[VideoProcessingManager alloc] init];
     
@@ -108,70 +99,15 @@
     [self.capturerManager setVideoView:self.glVideoView];
     // set custom capturer as video source
     [self.rtcEngineKit setVideoSource:self.capturerManager];
-#else
-    self.fuCamera = [[FUCamera alloc] initWithCameraPosition:AVCaptureDevicePositionFront captureFormat:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange];
-    self.fuCamera.delegate = self;
-    [self.fuCamera startCapture];
-    
-    self.fuGlView = [[FUOpenGLView alloc] initWithFrame:self.view.frame];
-    [self.view insertSubview:self.fuGlView atIndex:0];
-    self.localView.hidden = YES;
-    self.demoBar.hidden = YES;
-    [self.rtcEngineKit setVideoSource:self];
-    
-
-    
-#endif
-
-    // 注册通知
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidChangeStatusBar) name:UIApplicationDidChangeStatusBarOrientationNotification object:nil];
     
     [self.rtcEngineKit joinChannelByToken:nil channelId:self.channelName info:nil uid:0 joinSuccess:^(NSString * _Nonnull channel, NSUInteger uid, NSInteger elapsed) {
         
     }];
 }
 
-- (void)applicationDidChangeStatusBar {
-    UIInterfaceOrientation orientation = [UIApplication sharedApplication].statusBarOrientation;
-    
-    switch (orientation) {
-        
-        case UIDeviceOrientationPortrait:
-            
-            break;
-            
-        case UIDeviceOrientationLandscapeLeft:
-            
-            [self.fuCamera setCaptureVideoOrientation:(AVCaptureVideoOrientationLandscapeRight)];
-            break;
-            
-            
-        case UIDeviceOrientationLandscapeRight:
-            
-            [self.fuCamera setCaptureVideoOrientation:(AVCaptureVideoOrientationLandscapeLeft)];
-            break;
-            
-        default:
-            break;
-    }
-    
-}
-
-- (void)didOutputVideoSampleBuffer:(CMSampleBufferRef)sampleBuffer {
-    CVPixelBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
-    [[FUTestRecorder shareRecorder] processFrameWithLog];
-    
-    CVPixelBufferRef buffer = [[FUManager shareManager] renderItemsToPixelBuffer:pixelBuffer];
-    CMTime timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
-    [self.consumer consumePixelBuffer:buffer withTimestamp:timestamp rotation:AgoraVideoRotationNone];
-    [self.fuGlView displayPixelBuffer:buffer];
-    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
-}
 
 - (void)viewDidLayoutSubviews {
     self.glVideoView.frame = self.view.bounds;
-    self.fuGlView.frame = self.view.bounds;
 }
 
 /// faceunity
@@ -181,7 +117,6 @@
     [FUManager shareManager].flipx = YES;
     [FUManager shareManager].trackFlipx = YES;
     [FUManager shareManager].isRender = YES;
-    [[FUManager shareManager] setAsyncTrackFaceEnable:NO];
     
     _demoBar = [[FUAPIDemoBar alloc] init];
     _demoBar.mDelegate = self;
@@ -237,15 +172,12 @@
 /// release
 - (void)dealloc {
     
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
     [[FUManager shareManager] destoryItems];
-    
     [self.capturerManager stopCapture];
     [self.rtcEngineKit leaveChannel:nil];
     [self.rtcEngineKit stopPreview];
     [self.rtcEngineKit setVideoSource:nil];
     [AgoraRtcEngineKit destroy];
-   
     
 }
 
@@ -265,6 +197,18 @@
     config.mirrorMode = self.remoteVideoMirrored;
     [self.rtcEngineKit setVideoEncoderConfiguration:config];
 }
+
+- (IBAction)muteAudioBtn:(UIButton *)sender {
+
+    sender.selected = !sender.selected;
+    if (sender.selected) {
+        
+        [sender setTitleColor:[UIColor blueColor] forState:(UIControlStateSelected)];
+    }
+    [self.rtcEngineKit muteLocalAudioStream:sender.selected];
+    
+}
+
 
 
 - (IBAction)backBtnClick:(UIButton *)sender {
@@ -289,32 +233,6 @@
     [self.rtcEngineKit setupRemoteVideo:videoCanvas];
     // Bind remote video stream to view
     
-}
-
-#pragma mark - AgoraVideoSourceProtocol
-- (AgoraVideoBufferType)bufferType {
-    return AgoraVideoBufferTypePixelBuffer;
-}
-
-- (void)shouldDispose {
-    
-}
-
-- (BOOL)shouldInitialize {
-    return YES;
-}
-
-- (void)shouldStart {
-    
-}
-
-- (void)shouldStop {
-    
-}
-
-
-- (AgoraVideoCaptureType)captureType {
-    return AgoraVideoCaptureTypeCamera;
 }
 
 
