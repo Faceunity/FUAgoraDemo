@@ -11,7 +11,6 @@
 @implementation KeyCenter
 + (NSString *)AppId {
 //    return <#Your App Id#>;
-    return @"b646785207b84110be190b025b1f4b3c";
 }
 
 
