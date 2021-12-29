@@ -79,6 +79,7 @@ static NSString * const kFUBeautyCellIdentifierKey = @"FUBeautyCellIdentifier";
             self.recoverButton.userInteractionEnabled = YES;
         }
         [self.collectionView reloadData];
+        [self.collectionView selectItemAtIndexPath:[NSIndexPath indexPathForItem:self.viewModel.selectedIndex inSection:0] animated:NO scrollPosition:UICollectionViewScrollPositionNone];
     });
 }
 
