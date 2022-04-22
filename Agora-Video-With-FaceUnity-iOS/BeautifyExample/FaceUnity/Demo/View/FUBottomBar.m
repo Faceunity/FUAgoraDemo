@@ -77,6 +77,15 @@ static NSString * const kFUBottomCellIdentifierKey = @"FUBottomCellIdentifier";
 
 #pragma mark - Collection view delegate
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    
+    if (indexPath.item < 5) {
+        [[FUAIKit shareKit] setMaxTrackFaces:4];
+        
+    }else{
+            
+        // 设置美体的时候
+        [[FUAIKit shareKit] setMaxTrackFaces:1];
+    }
     if (indexPath.item == _selectedItem) {
         // 隐藏模块
         [collectionView deselectItemAtIndexPath:indexPath animated:YES];
