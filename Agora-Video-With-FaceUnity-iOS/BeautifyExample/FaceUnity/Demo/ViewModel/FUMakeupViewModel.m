@@ -75,6 +75,7 @@
     if (!_makeup) {
         _makeup = [[FUMakeup alloc] initWithPath:[[NSBundle mainBundle] pathForResource:@"face_makeup" ofType:@"bundle"] name:@"face_makeup"];
         _makeup.isMakeupOn = YES;
+        _makeup.makeupSegmentation = [FURenderKit devicePerformanceLevel] == FUDevicePerformanceLevelHigh;
     }
     return _makeup;
 }

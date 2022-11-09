@@ -67,7 +67,7 @@
 		E3583F02271198D2008E52A7 /* FUBeautyBodyViewModel.m in Sources */ = {isa = PBXBuildFile; fileRef = E3583EC8271198CF008E52A7 /* FUBeautyBodyViewModel.m */; };
 		E3583F03271198D2008E52A7 /* FaceUnity.strings in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECA271198D1008E52A7 /* FaceUnity.strings */; };
 		E3583F04271198D2008E52A7 /* oumei.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECD271198D1008E52A7 /* oumei.bundle */; };
-		E3583F05271198D2008E52A7 /* Rose.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECE271198D1008E52A7 /* Rose.bundle */; };
+		E3583F05271198D2008E52A7 /* rose.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECE271198D1008E52A7 /* rose.bundle */; };
 		E3583F06271198D2008E52A7 /* linjia.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECF271198D1008E52A7 /* linjia.bundle */; };
 		E3583F07271198D2008E52A7 /* yanshimao.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ED0271198D1008E52A7 /* yanshimao.bundle */; };
 		E3583F08271198D2008E52A7 /* tianmei.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ED1271198D1008E52A7 /* tianmei.bundle */; };
@@ -222,7 +222,7 @@
 		E3583EC8271198CF008E52A7 /* FUBeautyBodyViewModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FUBeautyBodyViewModel.m; sourceTree = "<group>"; };
 		E3583ECB271198D1008E52A7 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/FaceUnity.strings"; sourceTree = "<group>"; };
 		E3583ECD271198D1008E52A7 /* oumei.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = oumei.bundle; sourceTree = "<group>"; };
-		E3583ECE271198D1008E52A7 /* Rose.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = Rose.bundle; sourceTree = "<group>"; };
+		E3583ECE271198D1008E52A7 /* rose.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = rose.bundle; sourceTree = "<group>"; };
 		E3583ECF271198D1008E52A7 /* linjia.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = linjia.bundle; sourceTree = "<group>"; };
 		E3583ED0271198D1008E52A7 /* yanshimao.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = yanshimao.bundle; sourceTree = "<group>"; };
 		E3583ED1271198D1008E52A7 /* tianmei.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = tianmei.bundle; sourceTree = "<group>"; };
@@ -436,17 +436,17 @@
 		E3583EA72711920A008E52A7 /* Demo */ = {
 			isa = PBXGroup;
 			children = (
-				E3583EE6271198D2008E52A7 /* Defines */,
-				E3583EA9271198AF008E52A7 /* FUDemoManager.h */,
-				E3583EA8271198AF008E52A7 /* FUDemoManager.m */,
 				2DF48BEC2514912900575424 /* FUManager.h */,
 				2DF48BED2514912900575424 /* FUManager.m */,
+				E3583EA9271198AF008E52A7 /* FUDemoManager.h */,
+				E3583EA8271198AF008E52A7 /* FUDemoManager.m */,
 				E35B22C8253571FF00F50AC2 /* FUTestRecorder.h */,
 				E35B22C9253571FF00F50AC2 /* FUTestRecorder.m */,
-				E3583EAB271198CF008E52A7 /* Model */,
-				E3583EC9271198D1008E52A7 /* Resource */,
 				E3583EE8271198D2008E52A7 /* View */,
 				E3583EBA271198CF008E52A7 /* ViewModel */,
+				E3583EAB271198CF008E52A7 /* Model */,
+				E3583EE6271198D2008E52A7 /* Defines */,
+				E3583EC9271198D1008E52A7 /* Resource */,
 			);
 			path = Demo;
 			sourceTree = "<group>";
@@ -508,7 +508,7 @@
 			isa = PBXGroup;
 			children = (
 				E3583ECD271198D1008E52A7 /* oumei.bundle */,
-				E3583ECE271198D1008E52A7 /* Rose.bundle */,
+				E3583ECE271198D1008E52A7 /* rose.bundle */,
 				E3583ECF271198D1008E52A7 /* linjia.bundle */,
 				E3583ED0271198D1008E52A7 /* yanshimao.bundle */,
 				E3583ED1271198D1008E52A7 /* tianmei.bundle */,
@@ -677,7 +677,7 @@
 				E3583F0D271198D2008E52A7 /* gangfeng.bundle in Resources */,
 				E3583F1A271198D2008E52A7 /* DaisyPig.bundle in Resources */,
 				E3583F17271198D2008E52A7 /* fashi.bundle in Resources */,
-				E3583F05271198D2008E52A7 /* Rose.bundle in Resources */,
+				E3583F05271198D2008E52A7 /* rose.bundle in Resources */,
 				2DFDCC912779ACFA005FD7A7 /* controller_cpp.bundle in Resources */,
 				E3583F15271198D2008E52A7 /* xinggan.bundle in Resources */,
 				E3583F0B271198D2008E52A7 /* hongfeng.bundle in Resources */,
@@ -986,9 +986,11 @@
 			baseConfigurationReference = 55AE3D698E3E43CFA1B47A16 /* Pods-BeautifyExample.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
-				DEVELOPMENT_TEAM = 35A6KD62ZJ;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 35A6KD62ZJ;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1004,7 +1006,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.agora.AgoraLiveBroadcastxx;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = FUWildcard;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FUWildcard;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
