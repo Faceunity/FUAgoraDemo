@@ -18,10 +18,9 @@
 #import <Masonry/Masonry.h>
 #import <AGMRenderer/AGMRenderer.h>
 
-@interface ViewController () <AgoraRtcEngineDelegate, AgoraVideoSourceProtocol>
+@interface ViewController () <AgoraRtcEngineDelegate, AgoraVideoSourceProtocol, VideoFilterDelegate>
 
 @property (nonatomic, strong) CapturerManager *capturerManager;
-@property (nonatomic, strong) FUManager *videoFilter;
 @property (nonatomic, strong) VideoProcessingManager *processingManager;
 @property (nonatomic, strong) AgoraRtcEngineKit *rtcEngineKit;
 @property (nonatomic, strong) IBOutlet UIView *localView;
@@ -37,8 +36,6 @@
 @property (nonatomic, assign) AgoraVideoMirrorMode remoteVideoMirrored;
 @property (nonatomic, strong) AGMEAGLVideoView *glVideoView;
 
-@property (nonatomic, strong) FUDemoManager *demoManager;
-
 @end
 
 @implementation ViewController
@@ -49,13 +46,9 @@
     // Do any additional setup after loading the view.
     self.remoteView.hidden = YES;
     
-    // FaceUnity UI
-    CGFloat safeAreaBottom = 0;
-    if (@available(iOS 11.0, *)) {
-        safeAreaBottom = [UIApplication sharedApplication].delegate.window.safeAreaInsets.bottom;
-    }
-    
-    self.demoManager = [[FUDemoManager alloc] initWithTargetController:self originY:CGRectGetHeight(self.view.frame) - FUBottomBarHeight - safeAreaBottom];
+    // FaceUnity
+    [[FUDemoManager shared] setupFUSDK];
+    [[FUDemoManager shared] addDemoViewToView:self.view originY:CGRectGetHeight(self.view.frame) - FUBottomBarHeight - FUSafaAreaBottomInsets()];
 
     // 初始化 rte engine
     self.rtcEngineKit = [AgoraRtcEngineKit sharedEngineWithAppId:[KeyCenter AppId] delegate:self];
@@ -80,9 +73,8 @@
     videoConfig.pixelFormat =  AGMVideoPixelFormatNV12;
     self.capturerManager = [[CapturerManager alloc] initWithVideoConfig:videoConfig delegate:self.processingManager];
     
-    // add FaceUnity filter and add to process manager
-    self.videoFilter = [FUManager shareManager];
-    [self.processingManager addVideoFilter:self.videoFilter];
+    // add filter to process manager
+    [self.processingManager addVideoFilter:self];
     
     // self.processingManager.enableFilter = NO;
     
@@ -115,8 +107,7 @@
 }
 
 - (void)dealloc {
-    
-    [[FUManager shareManager] destoryItems];
+    [FUDemoManager destory];
     [self.capturerManager stopCapture];
     [self.rtcEngineKit leaveChannel:nil];
     [self.rtcEngineKit stopPreview];
@@ -129,7 +120,7 @@
 {
     [self.capturerManager switchCamera];
     
-    [[FUManager shareManager] onCameraChange];
+    [FUDemoManager resetTrackedResult];
     
 }
 
@@ -153,7 +144,7 @@
 }
 
 - (IBAction)backBtnClick:(UIButton *)sender {
-    [[FUManager shareManager] destoryItems];
+    [self.processingManager removeVideoFilter:self];
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
@@ -208,4 +199,26 @@
     videoCanvas.renderMode = AgoraVideoRenderModeHidden;
     [self.rtcEngineKit setupRemoteVideo:videoCanvas];
 }
+
+- (CVPixelBufferRef)processFrame:(CVPixelBufferRef)frame {
+    [[FUTestRecorder shareRecorder] processFrameWithLog];
+    [[FUDemoManager shared] checkAITrackedResult];
+    if (![FUDemoManager shared].shouldRender) {
+        return frame;
+    }
+    [[FUDemoManager shared] updateBeautyBlurEffect];
+    FURenderInput *input = [[FURenderInput alloc] init];
+    input.pixelBuffer = frame;
+    //默认图片内部的人脸始终是朝上，旋转屏幕也无需修改该属性。
+    input.renderConfig.imageOrientation = FUImageOrientationUP;
+    //开启重力感应，内部会自动计算正确方向，设置fuSetDefaultRotationMode，无须外面设置
+    input.renderConfig.gravityEnable = YES;
+    //如果来源相机捕获的图片一定要设置，否则将会导致内部检测异常
+    input.renderConfig.isFromFrontCamera = YES;
+    //该属性是指系统相机是否做了镜像: 一般情况前置摄像头出来的帧都是设置过镜像，所以默认需要设置下。如果相机属性未设置镜像，改属性不用设置。
+    input.renderConfig.isFromMirroredCamera = YES;
+    FURenderOutput *output = [[FURenderKit shareRenderKit] renderWithInput:input];
+    return output.pixelBuffer;
+}
+
 @end
