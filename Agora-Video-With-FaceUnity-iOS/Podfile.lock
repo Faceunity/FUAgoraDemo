@@ -1,50 +1,52 @@
 PODS:
-  - AGMCapturer_iOS (2.0.1)
-  - AgoraRtcEngine_iOS (3.7.0.3):
-    - AgoraRtcEngine_iOS/AINS (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/AV1Dec (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/ContentInspect (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/FullAudioFormat (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/ReplayKit (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/ROIEnc (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/RtcBasic (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/SpatialAudio (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/SuperResolution (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/VideoPreprocess (= 3.7.0.3)
-    - AgoraRtcEngine_iOS/VirtualBackground (= 3.7.0.3)
-  - AgoraRtcEngine_iOS/AINS (3.7.0.3)
-  - AgoraRtcEngine_iOS/AV1Dec (3.7.0.3)
-  - AgoraRtcEngine_iOS/ContentInspect (3.7.0.3)
-  - AgoraRtcEngine_iOS/FullAudioFormat (3.7.0.3)
-  - AgoraRtcEngine_iOS/ReplayKit (3.7.0.3)
-  - AgoraRtcEngine_iOS/ROIEnc (3.7.0.3)
-  - AgoraRtcEngine_iOS/RtcBasic (3.7.0.3)
-  - AgoraRtcEngine_iOS/SpatialAudio (3.7.0.3)
-  - AgoraRtcEngine_iOS/SuperResolution (3.7.0.3)
-  - AgoraRtcEngine_iOS/VideoPreprocess (3.7.0.3)
-  - AgoraRtcEngine_iOS/VirtualBackground (3.7.0.3)
+  - AgoraRtcEngine_iOS (4.2.1):
+    - AgoraRtcEngine_iOS/AIAEC (= 4.2.1)
+    - AgoraRtcEngine_iOS/AINS (= 4.2.1)
+    - AgoraRtcEngine_iOS/AudioBeauty (= 4.2.1)
+    - AgoraRtcEngine_iOS/ClearVision (= 4.2.1)
+    - AgoraRtcEngine_iOS/ContentInspect (= 4.2.1)
+    - AgoraRtcEngine_iOS/DRM (= 4.2.1)
+    - AgoraRtcEngine_iOS/FaceDetection (= 4.2.1)
+    - AgoraRtcEngine_iOS/ReplayKit (= 4.2.1)
+    - AgoraRtcEngine_iOS/RtcBasic (= 4.2.1)
+    - AgoraRtcEngine_iOS/SpatialAudio (= 4.2.1)
+    - AgoraRtcEngine_iOS/VideoCodecDec (= 4.2.1)
+    - AgoraRtcEngine_iOS/VideoCodecEnc (= 4.2.1)
+    - AgoraRtcEngine_iOS/VirtualBackground (= 4.2.1)
+    - AgoraRtcEngine_iOS/VQA (= 4.2.1)
+  - AgoraRtcEngine_iOS/AIAEC (4.2.1)
+  - AgoraRtcEngine_iOS/AINS (4.2.1)
+  - AgoraRtcEngine_iOS/AudioBeauty (4.2.1)
+  - AgoraRtcEngine_iOS/ClearVision (4.2.1)
+  - AgoraRtcEngine_iOS/ContentInspect (4.2.1)
+  - AgoraRtcEngine_iOS/DRM (4.2.1)
+  - AgoraRtcEngine_iOS/FaceDetection (4.2.1)
+  - AgoraRtcEngine_iOS/ReplayKit (4.2.1)
+  - AgoraRtcEngine_iOS/RtcBasic (4.2.1)
+  - AgoraRtcEngine_iOS/SpatialAudio (4.2.1)
+  - AgoraRtcEngine_iOS/VideoCodecDec (4.2.1)
+  - AgoraRtcEngine_iOS/VideoCodecEnc (4.2.1)
+  - AgoraRtcEngine_iOS/VirtualBackground (4.2.1)
+  - AgoraRtcEngine_iOS/VQA (4.2.1)
   - Masonry (1.1.0)
   - SVProgressHUD (2.2.5)
 
 DEPENDENCIES:
-  - AGMCapturer_iOS
-  - AgoraRtcEngine_iOS
-  - Masonry
-  - SVProgressHUD
+  - AgoraRtcEngine_iOS (= 4.2.1)
+  - Masonry (= 1.1.0)
+  - SVProgressHUD (= 2.2.5)
 
 SPEC REPOS:
   trunk:
-    - AGMCapturer_iOS
     - AgoraRtcEngine_iOS
     - Masonry
     - SVProgressHUD
 
 SPEC CHECKSUMS:
-  AGMCapturer_iOS: db3e573afc0a6cd9f73dfc36b6ef4df7887f922a
-  AgoraRtcEngine_iOS: 549bb3853d5afb18fabca4197786f39f31141da8
+  AgoraRtcEngine_iOS: bbbacbf4797a6f85532c6023b72c4d66f2b49227
   Masonry: 678fab65091a9290e40e2832a55e7ab731aad201
   SVProgressHUD: 1428aafac632c1f86f62aa4243ec12008d7a51d6
 
-PODFILE CHECKSUM: 7c5be201b5a0bb29692090e00117d410ffd91c9b
+PODFILE CHECKSUM: 7313a9e6d03fa96e7193b1585c489cd958c7d7c5
 
 COCOAPODS: 1.11.3

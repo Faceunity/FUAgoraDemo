@@ -93,6 +93,9 @@
 
 + (UIViewController *)topViewController {
     UIViewController *root = [UIApplication sharedApplication].delegate.window.rootViewController;
+    if (!root) {
+        root = [UIApplication sharedApplication].windows.firstObject.rootViewController;
+    }
     return [self currentViewControllerWithRootViewController:root];
 }
 
