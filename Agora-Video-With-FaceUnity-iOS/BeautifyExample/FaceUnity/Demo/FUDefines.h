@@ -87,9 +87,14 @@ static CGFloat const FUFunctionSliderHeight = 30.f;
 
 #pragma mark - 内联函数
 
-static inline CGFloat FUSafaAreaBottomInsets() {
+static inline CGFloat FUSafaAreaBottomInsets(void) {
     if (@available(iOS 11.0, *)) {
-        return [UIApplication sharedApplication].delegate.window.safeAreaInsets.bottom;
+        if (@available(iOS 11.0, *)) {
+            if ([UIApplication sharedApplication].delegate.window) {
+                return [UIApplication sharedApplication].delegate.window.safeAreaInsets.bottom;
+            }
+            return [UIApplication sharedApplication].windows.firstObject.safeAreaInsets.bottom;
+        }
     }
     return 0;
 }
