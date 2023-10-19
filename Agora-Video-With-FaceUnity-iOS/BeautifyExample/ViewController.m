@@ -44,7 +44,7 @@
     self.remoteView.hidden = YES;
     
     // FaceUnity
-    [[FUDemoManager shared] setupFUSDK];
+    [FUDemoManager setupFUSDK];
     [[FUDemoManager shared] addDemoViewToView:self.view originY:CGRectGetHeight(self.view.frame) - FUBottomBarHeight - FUSafaAreaBottomInsets()];
 
     // 初始化 rte engine
@@ -237,7 +237,7 @@
         return frame;
     }
     [[FUDemoManager shared] checkAITrackedResult];
-    [[FUDemoManager shared] updateBeautyBlurEffect];
+    [FUDemoManager updateBeautyBlurEffect];
     FURenderInput *input = [[FURenderInput alloc] init];
     input.pixelBuffer = frame;
     //默认图片内部的人脸始终是朝上，旋转屏幕也无需修改该属性。

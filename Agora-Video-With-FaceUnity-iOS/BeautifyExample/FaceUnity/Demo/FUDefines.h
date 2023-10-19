@@ -34,7 +34,9 @@ typedef NS_ENUM(NSUInteger, FUBeautySkin) {
     FUBeautySkinEyeBright,
     FUBeautySkinToothWhiten,
     FUBeautySkinRemovePouchStrength,
-    FUBeautySkinRemoveNasolabialFoldsStrength
+    FUBeautySkinRemoveNasolabialFoldsStrength,
+    FUBeautySkinAntiAcneSpot,
+    FUBeautySkinClarity
 };
 
 typedef NS_ENUM(NSUInteger, FUBeautyShape) {
