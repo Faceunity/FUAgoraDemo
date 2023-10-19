@@ -21,7 +21,16 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)shared;
 
 /// 初始化FURenderKit
-- (void)setupFUSDK;
++ (void)setupFUSDK;
+
+/// 注销FURenderKit和单例
++ (void)destory;
+
+/// 重置检测结果
++ (void)resetTrackedResult;
+
+/// 更新美颜磨皮效果（根据人脸检测置信度设置不同磨皮效果）
++ (void)updateBeautyBlurEffect;
 
 /// 添加视图到指定父视图
 /// @param view 父视图
@@ -30,15 +39,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// 人脸/人体检测
 - (void)checkAITrackedResult;
-
-/// 更新美颜磨皮效果（根据人脸检测置信度设置不同磨皮效果）
-- (void)updateBeautyBlurEffect;
-
-/// 重置检测结果
-+ (void)resetTrackedResult;
-
-/// 注销FURenderKit和单例
-+ (void)destory;
 
 @end
 

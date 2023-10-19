@@ -47,7 +47,6 @@
 @property (nonatomic, assign) CGFloat demoOriginY;
 
 @property (nonatomic, assign) BOOL shouldRender;
-@property (nonatomic, assign) FUDevicePerformanceLevel performanceLevel;
 
 @end
 
@@ -71,7 +70,7 @@ static dispatch_once_t onceToken;
     return self;
 }
 
-- (void)setupFUSDK {
++ (void)setupFUSDK {
     [FURenderKit setLogLevel:FU_LOG_LEVEL_INFO];
     FUSetupConfig *setupConfig = [[FUSetupConfig alloc] init];
     setupConfig.authPack = FUAuthPackMake(g_auth_package, sizeof(g_auth_package));
@@ -88,13 +87,11 @@ static dispatch_once_t onceToken;
     
     [FUAIKit shareKit].maxTrackFaces = 4;
     
-    self.performanceLevel = [FURenderKit devicePerformanceLevel];
-    
     // 设置人脸算法质量
-    [FUAIKit shareKit].faceProcessorFaceLandmarkQuality = self.performanceLevel == FUDevicePerformanceLevelHigh ? FUFaceProcessorFaceLandmarkQualityHigh : FUFaceProcessorFaceLandmarkQualityMedium;
+    [FUAIKit shareKit].faceProcessorFaceLandmarkQuality = [FURenderKit devicePerformanceLevel] == FUDevicePerformanceLevelHigh ? FUFaceProcessorFaceLandmarkQualityHigh : FUFaceProcessorFaceLandmarkQualityMedium;
     
     // 设置小脸检测是否打开
-    [FUAIKit shareKit].faceProcessorDetectSmallFace = self.performanceLevel == FUDevicePerformanceLevelHigh;
+    [FUAIKit shareKit].faceProcessorDetectSmallFace = [FURenderKit devicePerformanceLevel] == FUDevicePerformanceLevelHigh;
     
     // 性能测试初始化
     [[FUTestRecorder shareRecorder] setupRecord];
@@ -132,54 +129,7 @@ static dispatch_once_t onceToken;
     });
 }
 
-- (void)updateBeautyBlurEffect {
-    if (![FURenderKit shareRenderKit].beauty || ![FURenderKit shareRenderKit].beauty.enable) {
-        return;
-    }
-    if (self.performanceLevel == FUDevicePerformanceLevelHigh) {
-        // 根据人脸置信度设置不同磨皮效果
-        CGFloat score = [FUAIKit fuFaceProcessorGetConfidenceScore:0];
-        if (score > 0.95) {
-            [FURenderKit shareRenderKit].beauty.blurType = 3;
-            [FURenderKit shareRenderKit].beauty.blurUseMask = YES;
-        } else {
-            [FURenderKit shareRenderKit].beauty.blurType = 2;
-            [FURenderKit shareRenderKit].beauty.blurUseMask = NO;
-        }
-    } else {
-        // 设置精细磨皮效果
-        [FURenderKit shareRenderKit].beauty.blurType = 2;
-        [FURenderKit shareRenderKit].beauty.blurUseMask = NO;
-    }
-}
-
 #pragma mark - Private methods
-
-/// 加载默认美颜
-- (void)loadDefaultBeauty {
-    NSString *path = [[NSBundle mainBundle] pathForResource:@"face_beautification" ofType:@"bundle"];
-    FUBeauty *beauty = [[FUBeauty alloc] initWithPath:path name:@"FUBeauty"];
-    beauty.heavyBlur = 0;
-    // 默认均匀磨皮
-    beauty.blurType = 3;
-    // 默认精细变形
-    beauty.faceShape = 4;
-    // 高性能设备设置去黑眼圈、去法令纹、大眼、嘴型最新效果
-    if (self.performanceLevel == FUDevicePerformanceLevelHigh) {
-        [beauty addPropertyMode:FUBeautyPropertyMode2 forKey:FUModeKeyRemovePouchStrength];
-        [beauty addPropertyMode:FUBeautyPropertyMode2 forKey:FUModeKeyRemoveNasolabialFoldsStrength];
-        [beauty addPropertyMode:FUBeautyPropertyMode3 forKey:FUModeKeyEyeEnlarging];
-        [beauty addPropertyMode:FUBeautyPropertyMode3 forKey:FUModeKeyIntensityMouth];
-    }
-    [FURenderKit shareRenderKit].beauty = beauty;
-}
-
-/// 加载默认美体
-- (void)loadDefaultBody {
-    NSString *filePath = [[NSBundle mainBundle] pathForResource:@"body_slim" ofType:@"bundle"];
-    FUBodyBeauty *bodyBeauty = [[FUBodyBeauty alloc] initWithPath:filePath name:@"body_slim"];
-    [FURenderKit shareRenderKit].bodyBeauty = bodyBeauty;
-}
 
 /// 显示功能视图
 /// @param functionView 功能视图
@@ -251,7 +201,7 @@ static dispatch_once_t onceToken;
         case FUModuleTypeBody:{
             if (![FURenderKit shareRenderKit].bodyBeauty) {
                 // 加载默认美体
-                [self loadDefaultBody];
+                [FUDemoManager loadDefaultBody];
             }
             needShowView = self.bodyView;
         }
@@ -376,6 +326,53 @@ static dispatch_once_t onceToken;
 
 + (void)resetTrackedResult {
     [FUAIKit resetTrackedResult];
+}
+
++ (void)updateBeautyBlurEffect {
+    if (![FURenderKit shareRenderKit].beauty || ![FURenderKit shareRenderKit].beauty.enable) {
+        return;
+    }
+    if ([FURenderKit devicePerformanceLevel] == FUDevicePerformanceLevelHigh) {
+        // 根据人脸置信度设置不同磨皮效果
+        CGFloat score = [FUAIKit fuFaceProcessorGetConfidenceScore:0];
+        if (score > 0.95) {
+            [FURenderKit shareRenderKit].beauty.blurType = 3;
+            [FURenderKit shareRenderKit].beauty.blurUseMask = YES;
+        } else {
+            [FURenderKit shareRenderKit].beauty.blurType = 2;
+            [FURenderKit shareRenderKit].beauty.blurUseMask = NO;
+        }
+    } else {
+        // 设置精细磨皮效果
+        [FURenderKit shareRenderKit].beauty.blurType = 2;
+        [FURenderKit shareRenderKit].beauty.blurUseMask = NO;
+    }
+}
+
+/// 加载默认美颜
++ (void)loadDefaultBeauty {
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"face_beautification" ofType:@"bundle"];
+    FUBeauty *beauty = [[FUBeauty alloc] initWithPath:path name:@"FUBeauty"];
+    beauty.heavyBlur = 0;
+    // 默认均匀磨皮
+    beauty.blurType = 3;
+    // 默认精细变形
+    beauty.faceShape = 4;
+    // 高性能设备设置去黑眼圈、去法令纹、大眼、嘴型最新效果
+    if ([FURenderKit devicePerformanceLevel] == FUDevicePerformanceLevelHigh) {
+        [beauty addPropertyMode:FUBeautyPropertyMode2 forKey:FUModeKeyRemovePouchStrength];
+        [beauty addPropertyMode:FUBeautyPropertyMode2 forKey:FUModeKeyRemoveNasolabialFoldsStrength];
+        [beauty addPropertyMode:FUBeautyPropertyMode3 forKey:FUModeKeyEyeEnlarging];
+        [beauty addPropertyMode:FUBeautyPropertyMode3 forKey:FUModeKeyIntensityMouth];
+    }
+    [FURenderKit shareRenderKit].beauty = beauty;
+}
+
+/// 加载默认美体
++ (void)loadDefaultBody {
+    NSString *filePath = [[NSBundle mainBundle] pathForResource:@"body_slim" ofType:@"bundle"];
+    FUBodyBeauty *bodyBeauty = [[FUBodyBeauty alloc] initWithPath:filePath name:@"body_slim"];
+    [FURenderKit shareRenderKit].bodyBeauty = bodyBeauty;
 }
 
 @end

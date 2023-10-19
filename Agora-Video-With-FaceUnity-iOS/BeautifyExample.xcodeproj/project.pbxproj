@@ -41,7 +41,8 @@
 		2DFDCC972779AD01005FD7A7 /* FURenderKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 2DFDCC852779ACFA005FD7A7 /* FURenderKit.framework */; platformFilter = ios; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		5F66A41254472834DB1BBB0E /* Pods_BeautifyExample.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3D32F315DAB48F1AE0AFB5C4 /* Pods_BeautifyExample.framework */; };
 		610C64E814134B04440D425B /* Pods_BeautifyExample.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3D32F315DAB48F1AE0AFB5C4 /* Pods_BeautifyExample.framework */; };
-		E3583EAA271198AF008E52A7 /* FUDemoManager.m in Sources */ = {isa = PBXBuildFile; fileRef = E3583EA8271198AF008E52A7 /* FUDemoManager.m */; };
+		E34024302AB7ECF800F0A794 /* FUSegmentedControl.m in Sources */ = {isa = PBXBuildFile; fileRef = E340242E2AB7ECF800F0A794 /* FUSegmentedControl.m */; };
+		E340243A2AB7F2DB00F0A794 /* FUDemoManager.m in Sources */ = {isa = PBXBuildFile; fileRef = E34024392AB7F2DB00F0A794 /* FUDemoManager.m */; };
 		E3583F03271198D2008E52A7 /* FaceUnity.strings in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECA271198D1008E52A7 /* FaceUnity.strings */; };
 		E3583F04271198D2008E52A7 /* oumei.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECD271198D1008E52A7 /* oumei.bundle */; };
 		E3583F05271198D2008E52A7 /* rose.bundle in Resources */ = {isa = PBXBuildFile; fileRef = E3583ECE271198D1008E52A7 /* rose.bundle */; };
@@ -178,8 +179,10 @@
 		55AE3D698E3E43CFA1B47A16 /* Pods-BeautifyExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeautifyExample.debug.xcconfig"; path = "Target Support Files/Pods-BeautifyExample/Pods-BeautifyExample.debug.xcconfig"; sourceTree = "<group>"; };
 		AC523AADA896ACCF33329856 /* Pods-BeautifyExample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeautifyExample.release.xcconfig"; path = "Target Support Files/Pods-BeautifyExample/Pods-BeautifyExample.release.xcconfig"; sourceTree = "<group>"; };
 		DDA4FF26FEF71B547AC46AE1 /* Pods_BeautifyExampleTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_BeautifyExampleTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		E3583EA8271198AF008E52A7 /* FUDemoManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FUDemoManager.m; sourceTree = "<group>"; };
-		E3583EA9271198AF008E52A7 /* FUDemoManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FUDemoManager.h; sourceTree = "<group>"; };
+		E340242E2AB7ECF800F0A794 /* FUSegmentedControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FUSegmentedControl.m; sourceTree = "<group>"; };
+		E340242F2AB7ECF800F0A794 /* FUSegmentedControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FUSegmentedControl.h; sourceTree = "<group>"; };
+		E34024382AB7F2DB00F0A794 /* FUDemoManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FUDemoManager.h; sourceTree = "<group>"; };
+		E34024392AB7F2DB00F0A794 /* FUDemoManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FUDemoManager.m; sourceTree = "<group>"; };
 		E3583ECB271198D1008E52A7 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/FaceUnity.strings"; sourceTree = "<group>"; };
 		E3583ECD271198D1008E52A7 /* oumei.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = oumei.bundle; sourceTree = "<group>"; };
 		E3583ECE271198D1008E52A7 /* rose.bundle */ = {isa = PBXFileReference; lastKnownFileType = file; path = rose.bundle; sourceTree = "<group>"; };
@@ -438,8 +441,8 @@
 			isa = PBXGroup;
 			children = (
 				E3583EE7271198D2008E52A7 /* FUDefines.h */,
-				E3583EA9271198AF008E52A7 /* FUDemoManager.h */,
-				E3583EA8271198AF008E52A7 /* FUDemoManager.m */,
+				E34024382AB7F2DB00F0A794 /* FUDemoManager.h */,
+				E34024392AB7F2DB00F0A794 /* FUDemoManager.m */,
 				E35B22C8253571FF00F50AC2 /* FUTestRecorder.h */,
 				E35B22C9253571FF00F50AC2 /* FUTestRecorder.m */,
 				E3583EE8271198D2008E52A7 /* View */,
@@ -544,7 +547,7 @@
 			children = (
 				E3C2401B2994F07100FB12F9 /* FUAlert */,
 				E3C240122994F07000FB12F9 /* FUInsetsLabel */,
-				E3C240182994F07000FB12F9 /* FUSegmentBar */,
+				E3C240182994F07000FB12F9 /* FUSegment */,
 				E3C240152994F07000FB12F9 /* FUSlider */,
 				E3C240202994F07100FB12F9 /* FUSquareButton */,
 				E3C240232994F07100FB12F9 /* FUTipHUD */,
@@ -610,13 +613,15 @@
 			path = FUSlider;
 			sourceTree = "<group>";
 		};
-		E3C240182994F07000FB12F9 /* FUSegmentBar */ = {
+		E3C240182994F07000FB12F9 /* FUSegment */ = {
 			isa = PBXGroup;
 			children = (
+				E340242F2AB7ECF800F0A794 /* FUSegmentedControl.h */,
+				E340242E2AB7ECF800F0A794 /* FUSegmentedControl.m */,
 				E3C240192994F07000FB12F9 /* FUSegmentBar.h */,
 				E3C2401A2994F07000FB12F9 /* FUSegmentBar.m */,
 			);
-			path = FUSegmentBar;
+			path = FUSegment;
 			sourceTree = "<group>";
 		};
 		E3C2401B2994F07100FB12F9 /* FUAlert */ = {
@@ -870,7 +875,7 @@
 				E3C2402B2994F07100FB12F9 /* FUSquareButton.m in Sources */,
 				E3C2402A2994F07100FB12F9 /* FUAlertController.m in Sources */,
 				E3C23ED8299236C500FB12F9 /* FUStickerModel.m in Sources */,
-				E3583EAA271198AF008E52A7 /* FUDemoManager.m in Sources */,
+				E340243A2AB7F2DB00F0A794 /* FUDemoManager.m in Sources */,
 				2D8ABD2F2511B63200D28745 /* MainViewController.m in Sources */,
 				E3C23E9B2992368200FB12F9 /* FUBeautyFilterView.m in Sources */,
 				E3C23E982992368200FB12F9 /* FUBodyView.m in Sources */,
@@ -886,6 +891,7 @@
 				E3C23ED6299236C500FB12F9 /* FUMakeupModel.m in Sources */,
 				E3C240292994F07100FB12F9 /* FUAlertManager.m in Sources */,
 				09C6666424D7BC89001D7AE2 /* AppDelegate.m in Sources */,
+				E34024302AB7ECF800F0A794 /* FUSegmentedControl.m in Sources */,
 				E3C23EC6299236AA00FB12F9 /* FUBodyViewModel.m in Sources */,
 				09C6667524D7BC8B001D7AE2 /* main.m in Sources */,
 				E3C23EC5299236AA00FB12F9 /* FUMakeupViewModel.m in Sources */,
