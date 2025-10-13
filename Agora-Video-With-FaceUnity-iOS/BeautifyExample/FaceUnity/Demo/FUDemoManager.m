@@ -396,7 +396,9 @@ static dispatch_once_t onceToken;
         [beauty addPropertyMode:FUBeautyPropertyMode3 forKey:FUModeKeyEyeEnlarging];
         [beauty addPropertyMode:FUBeautyPropertyMode3 forKey:FUModeKeyIntensityMouth];
     }
+    // 打开美型功能抗锯齿优化
     [FURenderKit shareRenderKit].beauty = beauty;
+    beauty.enableWarpAntiAlias = YES;
 }
 
 /// 加载默认美体
